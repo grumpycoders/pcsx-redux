@@ -145,6 +145,22 @@ TEST(SF2, LoadsBackWithTinySoundFont) {
     tsf_close(font);
 }
 
+TEST(SF2, OutOfRangeRootKeyReadsAs60) {
+    std::vector<PCSX::SF2::Sample> samples(3);
+    const uint8_t keys[] = {127, 128, 255};
+    for (int n = 0; n < 3; n++) {
+        samples[n].name = std::string("s") + char('0' + n);
+        for (int i = 0; i < 20; i++) samples[n].pcm.push_back(int16_t(i));
+        samples[n].rootKey = keys[n];
+    }
+    auto data = PCSX::SF2::write(samples, "bank", "");
+    auto back = PCSX::SF2::read(data.data(), data.size());
+    ASSERT_EQ(back.size(), 3u);
+    EXPECT_EQ(back[0].rootKey, 127);
+    EXPECT_EQ(back[1].rootKey, 60);
+    EXPECT_EQ(back[2].rootKey, 60);
+}
+
 TEST(SF2, ReadsBackWhatItWrites) {
     std::vector<PCSX::SF2::Sample> samples(2);
     samples[0].name = "first";

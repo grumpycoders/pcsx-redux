@@ -302,7 +302,7 @@ std::vector<PCSX::SF2::Sample> PCSX::SF2::read(const uint8_t* data, size_t size)
         s.pcm.reserve(end - start);
         for (uint32_t p = start; p < end; p++) s.pcm.push_back(int16_t(rd16(smpl.data + p * 2)));
         s.sampleRate = rd32(h + 36);
-        s.rootKey = h[40];
+        s.rootKey = h[40] > 127 ? 60 : h[40];
         s.correction = int8_t(h[41]);
         if (loops[i] && startLoop >= start && startLoop < endLoop && endLoop <= end) {
             s.loops = true;
