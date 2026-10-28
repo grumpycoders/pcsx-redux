@@ -822,6 +822,16 @@ function TestIsoBuilder:test_xaFields()
     h:setSectorMode('M2_FORM2')
     lu.assertEquals(h:getXAAttribs(), 0x0d55)
 
+    -- M1 contents go on the disc as Form 1 sectors.
+    local m1 = file('M1')
+    m1:setSectorMode('M1')
+    m1:setXA {}
+    lu.assertEquals(m1:getXAAttribs(), 0x0d55)
+    m1:setSectorMode('M2_FORM2')
+    lu.assertEquals(m1:getXAAttribs(), 0x1555)
+    m1:setSectorMode('M1')
+    lu.assertEquals(m1:getXAAttribs(), 0x0d55)
+
     -- A raw sector mode cannot say which form the file is.
     local i = file('I')
     i:setSectorMode('M2_RAW')

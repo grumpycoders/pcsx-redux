@@ -224,7 +224,12 @@ local xaFormMask = 0x1800
 
 local function sectorModeValue(mode) return tonumber(ffi.cast('enum SectorMode', mode)) end
 local sectorModeNames = { 'GUESS', 'RAW', 'M1', 'M2_RAW', 'M2_FORM1', 'M2_FORM2' }
-local formOfSectorMode = { [sectorModeValue('M2_FORM1')] = 1, [sectorModeValue('M2_FORM2')] = 2 }
+-- M1 file contents are written as Mode 2 Form 1 sectors.
+local formOfSectorMode = {
+    [sectorModeValue('M1')] = 1,
+    [sectorModeValue('M2_FORM1')] = 1,
+    [sectorModeValue('M2_FORM2')] = 2,
+}
 
 -- The XA form a file written in this sector mode carries. Raw modes hand over whole sectors whose subheaders say
 -- it per sector, so the directory record can't be derived from them.
