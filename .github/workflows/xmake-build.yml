@@ -70,6 +70,8 @@ jobs:
 
   wasm:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     container:
       image: ghcr.io/pcsx-redux/pcsx-redux-build:latest
     env:
@@ -81,6 +83,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           set-safe-directory: true
+          persist-credentials: false
       - name: Fetch submodules
         run: ./.github/scripts/update-submodules.sh
       - uses: actions/cache@v4
@@ -132,6 +135,8 @@ jobs:
     needs: wasm
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'pcsx-redux/pcsx-redux'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     concurrency:
       group: wasm-deploy
       cancel-in-progress: false
