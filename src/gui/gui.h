@@ -370,7 +370,6 @@ class GUI final : public UI {
     TvgViewport *getTvgViewport(unsigned viewportId);
     void renderTvgViewport(ImGuiViewport *viewport, SDL_Window *window);
     void destroyTvgViewport(unsigned viewportId, SDL_Window *window);
-    std::vector<ImWchar> m_baseFontRanges;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
@@ -549,8 +548,7 @@ class GUI final : public UI {
     bool m_hasJapanese = false;
     float m_currentScale = 1.0f;
 
-    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine,
-                     bool isSymbolsFont);
+    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, bool combine);
 
     bool m_reloadFonts = true;
     Widgets::ShaderEditor m_outputShaderEditor = {"output"};
