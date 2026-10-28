@@ -177,7 +177,8 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
           settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); },
           [this](const std::string& name, IO<File> file) { m_dalos.addSource(name, file); }),
       m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites),
-      m_gpuDump(settings.get<ShowGPUDump>().value, favorites) {
+      m_gpuDump(settings.get<ShowGPUDump>().value, favorites),
+      m_spuSamplesWidget(settings.get<ShowSPUSamples>().value, favorites) {
     assert(g_gui == nullptr);
     g_gui = this;
 }

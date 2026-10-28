@@ -26,41 +26,18 @@
 #include "imgui.h"
 #include "implot/implot.h"
 #include "spu/adpcm.h"
+#include "support/file.h"
+#include "supportpsx/sf2.h"
 
 namespace {
 
-// ADPCM block header, byte 1.
-constexpr uint8_t c_flagLoopEnd = 1;
-constexpr uint8_t c_flagRepeat = 2;
-constexpr uint8_t c_flagLoopStart = 4;
-constexpr uint32_t c_blockSize = 16;
+using PCSX::SPUSample::c_blockSize;
+using PCSX::SPUSample::c_samplesPerBlock;
 
 }  // namespace
 
-PCSX::Widgets::SPUSamples::Sample PCSX::Widgets::SPUSamples::walk(const uint8_t* spuRam, uint32_t start) {
-    Sample sample;
-    sample.start = start;
-    uint32_t addr = start & ~(c_blockSize - 1);
-    while (true) {
-        if (addr >= SPUInterface::c_spuRamSize) {
-            sample.truncated = true;
-            sample.end = SPUInterface::c_spuRamSize;
-            break;
-        }
-        const uint8_t flags = spuRam[addr + 1];
-        if (flags & c_flagLoopStart) {
-            sample.loop = addr;
-            sample.hasLoop = true;
-        }
-        addr += c_blockSize;
-        if (flags & c_flagLoopEnd) {
-            sample.end = addr;
-            sample.repeats = flags & c_flagRepeat;
-            break;
-        }
-    }
-    return sample;
-}
+PCSX::Widgets::SPUSamples::SPUSamples(bool& show, std::vector<std::string>& favorites)
+    : m_show(show), m_exportDialog(l_("Export SoundFont"), favorites) {}
 
 void PCSX::Widgets::SPUSamples::decode(const uint8_t* spuRam, const Sample& sample, std::vector<float>& out) {
     out.clear();
@@ -72,6 +49,37 @@ void PCSX::Widgets::SPUSamples::decode(const uint8_t* spuRam, const Sample& samp
         decoder.decodeBlock(ram + addr);
         while (!decoder.bufferExhausted()) out.push_back(float(decoder.takeSample()));
     }
+}
+
+std::vector<uint8_t> PCSX::Widgets::SPUSamples::exportSF2(const uint8_t* spuRam,
+                                                          const std::map<uint32_t, Sample>& samples) {
+    std::vector<SF2::Sample> out;
+    std::vector<float> pcm;
+    for (auto& [start, cached] : samples) {
+        // Sound RAM may have changed since the map was last rebuilt.
+        Sample s = cached;
+        static_cast<SPUSample::Extent&>(s) = SPUSample::walk(spuRam, start);
+        if (s.truncated) continue;
+        s.signature = SPUSample::signature(spuRam, s);
+        decode(spuRam, s, pcm);
+        SF2::Sample& o = out.emplace_back();
+        o.name = fmt::format("{:016x}", s.signature);
+        o.pcm.reserve(pcm.size());
+        for (float v : pcm) o.pcm.push_back(int16_t(std::clamp(v, -32768.0f, 32767.0f)));
+        o.sampleRate = 44100;
+        o.rootKey = 60;
+        if (s.repeats && s.hasLoop) {
+            o.loops = true;
+            o.loopStart = (s.loop - s.start) / c_blockSize * c_samplesPerBlock;
+            o.loopEnd = uint32_t(o.pcm.size());
+        }
+    }
+    if (out.empty()) return {};
+    return SF2::write(out, "PCSX-Redux SPU samples",
+                      "Sample names are the SPU sample signatures. Root keys are unknown: every sample plays at "
+                      "its stored rate on note 60, which is SPU pitch 1000h (44100 Hz). Note 69 is 440 Hz (A4). "
+                      "Loops come from the ADPCM loop flags only; a loop address the game wrote to the voice "
+                      "register is not exported.");
 }
 
 void PCSX::Widgets::SPUSamples::rebuild(PCSX::SPULogger* logger, const uint8_t* spuRam) {
@@ -95,11 +103,8 @@ void PCSX::Widgets::SPUSamples::rebuild(PCSX::SPULogger* logger, const uint8_t* 
 
     // Sound RAM may have been rewritten under any of them, so every sample is walked again.
     for (auto& [start, s] : m_samples) {
-        const uint32_t keyOns = s.keyOns;
-        const uint32_t voiceMask = s.voiceMask;
-        s = walk(spuRam, start);
-        s.keyOns = keyOns;
-        s.voiceMask = voiceMask;
+        static_cast<SPUSample::Extent&>(s) = SPUSample::walk(spuRam, start);
+        s.signature = s.truncated ? 0 : SPUSample::signature(spuRam, s);
     }
 
     if (m_selected) {
@@ -137,10 +142,15 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
         ImGui::TextWrapped("%s", _("Sample starts come from key on events. Enable the SPU logger to collect them."));
     }
     ImGui::TextUnformatted(fmt::format(f_("{} samples"), m_samples.size()).c_str());
+    ImGui::SameLine();
+    if (ImGui::Button(_("Export SoundFont..."))) m_exportDialog.openDialog();
+    ImGui::TextWrapped("%s", _("Root keys are unknown. The export plays every sample at its stored rate on note 60 "
+                               "(pitch 1000h, 44100 Hz)."));
+    if (!m_exportStatus.empty()) ImGui::TextUnformatted(m_exportStatus.c_str());
 
     const float tableHeight = ImGui::GetContentRegionAvail().y * 0.4f;
     if (ImGui::BeginTable(
-            "SPUSamples", 6,
+            "SPUSamples", 7,
             ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit,
             ImVec2(0, tableHeight))) {
         ImGui::TableSetupScrollFreeze(0, 1);
@@ -150,6 +160,7 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
         ImGui::TableSetupColumn(_("Loop"));
         ImGui::TableSetupColumn(_("Key ons"));
         ImGui::TableSetupColumn(_("Voices"));
+        ImGui::TableSetupColumn(_("Signature"));
         ImGui::TableHeadersRow();
 
         for (auto& [start, s] : m_samples) {
@@ -184,6 +195,12 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
                 voices += fmt::format("{}", v);
             }
             ImGui::TextUnformatted(voices.c_str());
+            ImGui::TableSetColumnIndex(6);
+            if (s.truncated) {
+                ImGui::TextUnformatted(_("no end"));
+            } else {
+                ImGui::TextUnformatted(fmt::format("{:016x}", s.signature).c_str());
+            }
         }
         ImGui::EndTable();
     }
@@ -203,4 +220,23 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
     }
 
     ImGui::End();
+
+    if (m_exportDialog.draw()) {
+        auto& selected = m_exportDialog.selected();
+        if (!selected.empty()) {
+            auto data = exportSF2(spuRam, m_samples);
+            if (data.empty()) {
+                m_exportStatus = _("No complete samples to export.");
+            } else {
+                IO<File> file = new PosixFile(selected[0], FileOps::TRUNCATE);
+                if (file->failed()) {
+                    m_exportStatus = _("Unable to open the file for writing.");
+                } else if (file->write(data.data(), data.size()) != ssize_t(data.size())) {
+                    m_exportStatus = _("Writing the file failed.");
+                } else {
+                    m_exportStatus = fmt::format(f_("Exported {} bytes."), data.size());
+                }
+            }
+        }
+    }
 }
