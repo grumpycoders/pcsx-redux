@@ -74,6 +74,7 @@ std::vector<uint8_t> PCSX::Widgets::SPUSamples::exportSF2(const uint8_t* spuRam,
             o.loopEnd = uint32_t(o.pcm.size());
         }
     }
+    if (out.empty()) return {};
     return SF2::write(out, "PCSX-Redux SPU samples",
                       "Sample names are the SPU sample signatures. Root keys are unknown: every sample plays at "
                       "its stored rate on note 60, which is SPU pitch 1000h (44100 Hz). Note 69 is 440 Hz (A4). "
@@ -224,13 +225,17 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
         auto& selected = m_exportDialog.selected();
         if (!selected.empty()) {
             auto data = exportSF2(spuRam, m_samples);
-            IO<File> file = new PosixFile(selected[0], FileOps::TRUNCATE);
-            if (file->failed()) {
-                m_exportStatus = _("Unable to open the file for writing.");
-            } else if (file->write(data.data(), data.size()) != ssize_t(data.size())) {
-                m_exportStatus = _("Writing the file failed.");
+            if (data.empty()) {
+                m_exportStatus = _("No complete samples to export.");
             } else {
-                m_exportStatus = fmt::format(f_("Exported {} bytes."), data.size());
+                IO<File> file = new PosixFile(selected[0], FileOps::TRUNCATE);
+                if (file->failed()) {
+                    m_exportStatus = _("Unable to open the file for writing.");
+                } else if (file->write(data.data(), data.size()) != ssize_t(data.size())) {
+                    m_exportStatus = _("Writing the file failed.");
+                } else {
+                    m_exportStatus = fmt::format(f_("Exported {} bytes."), data.size());
+                }
             }
         }
     }
