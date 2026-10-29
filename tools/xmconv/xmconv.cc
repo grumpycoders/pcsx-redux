@@ -229,7 +229,9 @@ static bool loadXM(PCSX::IO<PCSX::File>& file, std::string_view name, unsigned a
     };
 
     // The signature ends with a space, which readString would trim.
-    if (std::string_view(reinterpret_cast<const char*>(file->read(17).data()), 17) != "Extended Module: ") {
+    auto signature = file->read(17);
+    if ((signature.size() != 17) ||
+        (std::string_view(reinterpret_cast<const char*>(signature.data()), 17) != "Extended Module: ")) {
         fmt::print("{} is not an XM file.\n", name);
         return false;
     }
@@ -380,7 +382,8 @@ static bool loadXM(PCSX::IO<PCSX::File>& file, std::string_view name, unsigned a
         }
         uint64_t dataSize = 0;
         for (auto l : lengths) dataSize += l;
-        if (dataSize > fileSize - size_t(file->rTell())) {
+        const size_t dataStart = std::min<size_t>(fileSize, file->rTell());
+        if (dataSize > fileSize - dataStart) {
             fmt::print("Truncated XM file.\n");
             return false;
         }

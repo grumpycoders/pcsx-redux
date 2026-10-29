@@ -1,10 +1,10 @@
 # XMCONV
 
-Converts FastTracker 2 modules (.xm, version 0104) for the [xmplayer library](https://github.com/pcsx-redux/nugget/tree/main/xmplayer). It writes two files: the song (patterns, instruments and sample headers, in the format described in `xmplayer.h`), and the samples as SPU ADPCM, which the player uploads to SPU RAM.
+Converts FastTracker 2 modules (.xm, version 0104) and 31-sample ProTracker modules (.mod, played with FastTracker 2 effect semantics) for the [xmplayer library](https://github.com/pcsx-redux/nugget/tree/main/xmplayer). It writes two files: the song (patterns, instruments and sample headers, in the format described in `xmplayer.h`), and the samples as SPU ADPCM, which the player uploads to SPU RAM.
 
 ## Usage
 ```sh
-xmconv input.xm [-a amp] [-f] -o output.xmp -s output.smp
+xmconv input.xm|input.mod [-a amp] [-f] -o output.xmp -s output.smp
 ```
 
 ## Arguments
