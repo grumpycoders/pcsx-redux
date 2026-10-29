@@ -73,4 +73,6 @@ nav:
       - 'Lua/assembler.md'
       - 'Lua/binary.md'
       - 'Lua/case-studies.md'
+      - 'Lua/playbook-scripted-session.md'
+      - 'Lua/playbook-localizing-bugs.md'
     - 'openbios.md'
