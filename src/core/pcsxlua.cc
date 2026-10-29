@@ -165,6 +165,36 @@ LuaScreenShot takeScreenShot() {
 
 double getGuestFPS() { return PCSX::g_emulator->m_gpuLogger->getGuestFPS(); }
 
+void setGPULogging(bool enabled, bool overdrawStats) {
+    auto logger = PCSX::g_emulator->m_gpuLogger.get();
+    logger->setEnabled(enabled);
+    logger->m_overdrawStats = overdrawStats;
+}
+
+struct LuaOverdrawStats {
+    bool valid;
+    uint64_t total;
+    uint32_t pixels, max;
+    uint32_t buckets[5];
+};
+
+uint64_t getOverdrawSum(bool read, int x, int y, int w, int h) {
+    return PCSX::g_emulator->m_gpuLogger->getOverdrawSum(read, x, y, w, h);
+}
+
+LuaOverdrawStats getOverdrawStats(bool read) {
+    LuaOverdrawStats ret = {};
+    auto logger = PCSX::g_emulator->m_gpuLogger.get();
+    if (!logger->hasOverdrawStats()) return ret;
+    auto& stats = read ? logger->getReadOverdraw() : logger->getWrittenOverdraw();
+    ret.valid = true;
+    ret.total = stats.total;
+    ret.pixels = stats.pixels;
+    ret.max = stats.max;
+    for (unsigned i = 0; i < 5; i++) ret.buckets[i] = stats.buckets[i];
+    return ret;
+}
+
 void startGPUDump(PCSX::LuaFFI::LuaFile* file) { PCSX::g_emulator->m_gpuDumper->start(file->file); }
 void stopGPUDump() { PCSX::g_emulator->m_gpuDumper->stop(); }
 bool isGPUDumpArmed() { return PCSX::g_emulator->m_gpuDumper->armed(); }
@@ -277,6 +307,9 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, loadCpuTrace);
     REGISTER(L, takeScreenShot);
     REGISTER(L, getGuestFPS);
+    REGISTER(L, setGPULogging);
+    REGISTER(L, getOverdrawStats);
+    REGISTER(L, getOverdrawSum);
     REGISTER(L, startGPUDump);
     REGISTER(L, stopGPUDump);
     REGISTER(L, isGPUDumpArmed);
