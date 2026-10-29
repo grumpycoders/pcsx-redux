@@ -75,7 +75,11 @@ class GPULogger {
     void setLogging(bool enabled) { m_enabled = enabled; }
     size_t loggedCount() const { return m_list.size(); }
     GPU::LoggedList& frameLog() { return m_list; }
-    void clearFrameLog() { m_list.destroyAll(); }
+    void clearFrameLog() {
+        m_list.destroyAll();
+        // The next command starts a new frame for the heatmaps, so nothing drawn before the clear is counted.
+        m_pendingNewFrame = true;
+    }
     template <typename T>
     void addNode(const T& data, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
         if constexpr (std::is_same_v<T, GPU::CtrlDisplayStart>) {
