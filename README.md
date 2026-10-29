@@ -45,7 +45,7 @@ The [tools](tools) directory contains a few tools that can be used to work with 
 
 All native builds are 64-bit only, and need a GPU and driver that can create at least an OpenGL 3.0 context. The emulator asks for a 3.3 core profile first and falls back to 3.0 if that fails.
 
-The browser build is highly experimental and not really functional yet: expect missing features and breakage. It is redeployed on every push to main. It runs the CPU interpreter only and boots OpenBIOS, and it needs WebGL2 and SharedArrayBuffer. The first visit reloads the page once to enable SharedArrayBuffer.
+The browser build is highly experimental and not really functional yet: expect missing features and breakage. It is redeployed from each push to main whose wasm build succeeds. It runs the CPU interpreter only and boots OpenBIOS, and it needs WebGL2 and SharedArrayBuffer. The first visit reloads the page once to enable SharedArrayBuffer.
 
 ### Note:
 The macOS version of PCSX-Redux is not currently signed with a developer certificate so you may see a security warning when opening the application.
