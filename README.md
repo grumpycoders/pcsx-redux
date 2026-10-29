@@ -8,6 +8,7 @@
 |Linux x64 build|[![Linux x64 CI](https://github.com/pcsx-redux/pcsx-redux/workflows/Linux%20CI/badge.svg?branch=main)](https://github.com/pcsx-redux/pcsx-redux/actions?query=workflow%3A%22Linux+CI%22+branch%3Amain)|[Linux Intel 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-x64)|
 |Linux arm64 build|[![Linux arm64 CI](https://github.com/pcsx-redux/pcsx-redux/workflows/Linux%20CI/badge.svg?branch=main)](https://github.com/pcsx-redux/pcsx-redux/actions?query=workflow%3A%22Linux+CI%22+branch%3Amain)|[Linux Arm 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-arm64)|
 |macOS build|[![macOS CI](https://github.com/pcsx-redux/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)](https://github.com/pcsx-redux/pcsx-redux/actions?query=workflow%3A%22macOS+CI%22+branch%3Amain)|[macOS Arm](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-arm)|
+|Browser build|[![xmake build](https://github.com/pcsx-redux/pcsx-redux/actions/workflows/xmake-build.yml/badge.svg?branch=main)](https://github.com/pcsx-redux/pcsx-redux/actions/workflows/xmake-build.yml?query=branch%3Amain)|[Run in the browser](https://tools.psx.dev/redux/)|
 
 To discuss this emulator specifically, please join our Discord server:
 
@@ -40,8 +41,11 @@ The [tools](tools) directory contains a few tools that can be used to work with 
 |[Linux Intel 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-x64)|
 |[Linux Arm 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-arm64)|
 |[MacOS Arm](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-arm)|
+|[Browser (WebAssembly)](https://tools.psx.dev/redux/)|
 
-All builds are 64-bit only, and need a GPU and driver that can create at least an OpenGL 3.0 context. The emulator asks for a 3.3 core profile first and falls back to 3.0 if that fails.
+All native builds are 64-bit only, and need a GPU and driver that can create at least an OpenGL 3.0 context. The emulator asks for a 3.3 core profile first and falls back to 3.0 if that fails.
+
+The browser build is redeployed on every push to main. It runs the CPU interpreter only and boots OpenBIOS, and it needs WebGL2 and SharedArrayBuffer. The first visit reloads the page once to enable SharedArrayBuffer.
 
 ### Note:
 The macOS version of PCSX-Redux is not currently signed with a developer certificate so you may see a security warning when opening the application.
