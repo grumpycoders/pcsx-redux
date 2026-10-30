@@ -32,11 +32,35 @@ PCSX::MemoryCard::MemoryCard(SIO *parent) : m_sio(parent) { memset(m_mcdData, 0,
 PCSX::MemoryCard::~MemoryCard() = default;
 
 void PCSX::MemoryCard::enablePocketstation() {
+    if (m_pocketstationEnabled && m_pocketstation) return;
     m_pocketstationEnabled = true;
     createPocketstation();
 }
 
+void PCSX::MemoryCard::reloadPocketstation() {
+    if (m_pocketstationEnabled) createPocketstation();
+}
+
+bool PCSX::MemoryCard::syncPocketstationFlash() {
+    if (!m_pocketstation || m_pocketstation->flashSize() != c_cardSize) return false;
+    uint8_t *flash = m_pocketstation->flashDataMutable();
+    uint8_t *shadow = m_pocketstationFlashShadow.data();
+    uint8_t *card = reinterpret_cast<uint8_t *>(m_mcdData);
+    if (memcmp(flash, shadow, c_cardSize) != 0) {
+        memcpy(card, flash, c_cardSize);
+        memcpy(shadow, flash, c_cardSize);
+        m_savedToDisk = false;
+        return true;
+    }
+    if (memcmp(card, shadow, c_cardSize) != 0) {
+        memcpy(flash, card, c_cardSize);
+        memcpy(shadow, card, c_cardSize);
+    }
+    return false;
+}
+
 void PCSX::MemoryCard::disablePocketstation() {
+    syncPocketstationFlash();
     m_pocketstationEnabled = false;
     m_pocketstationDocked = false;
     m_pocketstationManualDock = false;
@@ -113,6 +137,7 @@ void PCSX::MemoryCard::runPocketstation(uint64_t armCycles) {
 }
 
 void PCSX::MemoryCard::createPocketstation() {
+    syncPocketstationFlash();
     m_pocketstation.reset();
     m_pocketstationDocked = false;
     m_pocketstationManualDock = false;
@@ -142,9 +167,10 @@ void PCSX::MemoryCard::createPocketstation() {
 
     auto dev = std::make_unique<PocketStation::PocketStation>();
     dev->setKernel(kernel, sizeof(kernel));
-    // TODO(wiring-2): the card image is snapshotted into the device flash once, here. Writes on
-    // either side do not yet alias -- live two-way flash<->m_mcdData sync is a follow-up chunk.
+    // The device keeps its own copy of the card image; syncPocketstationFlash() reconciles the two.
     dev->setFlash(reinterpret_cast<const uint8_t *>(m_mcdData), c_cardSize);
+    m_pocketstationFlashShadow.assign(reinterpret_cast<const uint8_t *>(m_mcdData),
+                                      reinterpret_cast<const uint8_t *>(m_mcdData) + c_cardSize);
     dev->reset();
     m_pocketstation = std::move(dev);
 }
@@ -169,10 +195,15 @@ void PCSX::MemoryCard::loadPocketstationState(SaveStates::PocketStationSlot& slo
                                int(this - m_sio->m_memoryCard) + 1);
         return;
     }
+    syncPocketstationFlash();
     if (!m_pocketstation->loadState(reinterpret_cast<const uint8_t*>(blob.data()), blob.size())) {
         PCSX::g_system->printf(_("PocketStation: the device state in this savestate is not one this build reads.\n"));
         return;
     }
+    // A savestate does not roll back the card file, as with an ordinary card: the next sync pushes
+    // m_mcdData over the flash the state carried.
+    m_pocketstationFlashShadow.assign(m_pocketstation->flashData(),
+                                      m_pocketstation->flashData() + m_pocketstation->flashSize());
     m_pocketstationDocked = slot.get<SaveStates::PocketStationDocked>().value;
     m_pocketstationManualDock = slot.get<SaveStates::PocketStationManualDock>().value;
     m_pocketstationSelected = slot.get<SaveStates::PocketStationSelected>().value;

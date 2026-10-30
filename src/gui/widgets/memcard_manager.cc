@@ -205,6 +205,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
             std::vector<PCSX::u8string> fileToOpen = m_pocketstationBiosDialog.selected();
             if (!fileToOpen.empty()) {
                 g_emulator->settings.get<Emulator::SettingPocketstationBios>().value = fileToOpen[0];
+                g_emulator->m_sio->reloadPocketstations();
                 changed = true;
             }
         }

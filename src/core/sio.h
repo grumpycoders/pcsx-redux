@@ -138,6 +138,11 @@ class SIO {
     }
 
     void togglePocketstationMode();
+    // Rebuild the devices of enabled slots, e.g. after the kernel image setting changed.
+    void reloadPocketstations();
+    // Reconcile each device's flash with its card image, saving the card file when the device
+    // wrote to it.
+    void syncPocketstationFlash();
     // Docked PocketStation device for a card slot (0-based), or nullptr if none. Used by the GUI
     // LCD widget to read out the framebuffer.
     // The card in a slot, for the UI: it owns the dock state as well as the device.
@@ -302,7 +307,7 @@ class SIO {
     // convert at its OWN live CLK_MODE.FREQ clock while never discarding a sub-1-ARM-cycle delta.
     uint64_t m_psxArmAccum[c_cardCount] = {0};
     // Wall-clock standalone driver state (stepPocketstationWallClock). m_lastWallClock anchors real
-    // elapsed time; the per-device ns remainder carries the sub-1-ARM-cycle fraction so frequent small
+    // elapsed time; the per-device remainder (ns*Hz) carries the sub-1-ARM-cycle fraction so frequent small
     // frame deltas don't starve the device (same accumulate-the-remainder discipline as the PSX path).
     // The two anchors cross-invalidate when control passes between paths so each re-syncs cleanly on
     // the running<->paused transition (no bogus first delta).

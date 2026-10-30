@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <memory>
+#include <vector>
 
 #include "core/sstate.h"
 
@@ -58,8 +59,15 @@ class MemoryCard {
     bool dataChanged() { return !m_savedToDisk; }
     // Defined in memorycard.cc: enable creates+boots the device (kernel from the
     // SettingPocketstationBios path, flash from this slot's m_mcdData); disable tears it down.
+    // Enabling a slot that already has a running device leaves it alone.
     void disablePocketstation();
     void enablePocketstation();
+    // Rebuilds the device of an enabled slot, e.g. to boot a newly selected kernel image.
+    void reloadPocketstation();
+    // Two-way sync between the device's flash and m_mcdData, against the image both last agreed
+    // on: device writes land in m_mcdData (marking the card unsaved), host-side edits of m_mcdData
+    // land in the device. The device wins when both changed. Returns true when m_mcdData changed.
+    bool syncPocketstationFlash();
     // Returns the docked PocketStation device, or nullptr if none (disabled, or no kernel image).
     PocketStation::PocketStation *getPocketstation() { return m_pocketstation.get(); }
     // Dock the device once its kernel has armed the dock interrupt, instead of waiting for the
@@ -176,6 +184,8 @@ class MemoryCard {
     // Owned ARM7 device, present only while pocketstation mode is enabled AND a valid kernel
     // image is configured. Created/destroyed by enable/disablePocketstation().
     std::unique_ptr<PocketStation::PocketStation> m_pocketstation;
+    // The flash image the device and m_mcdData last agreed on; see syncPocketstationFlash().
+    std::vector<uint8_t> m_pocketstationFlashShadow;
     // (Re)create + boot the device from the kernel-path setting and this slot's card image.
     void createPocketstation();
 

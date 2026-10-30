@@ -140,16 +140,19 @@ void PCSX::SIO::stepPocketstationWallClock() {
             m_wallClockRemainderNs[i] = 0;
             continue;
         }
-        // Scale real elapsed ns -> ARM7 cycles at THIS device's LIVE clock (CLK_MODE.FREQ). Per-device
-        // ns remainder carries the sub-1-ARM-cycle fraction (same discipline as the PSX path) and lets
-        // a software clock change rescale the standalone run rate cleanly.
+        // Scale real elapsed ns -> ARM7 cycles at THIS device's LIVE clock (CLK_MODE.FREQ). The
+        // per-device remainder is kept in ns*Hz, as the PSX path does, so the sub-1-ARM-cycle
+        // fraction carries over exactly; it stays under 1e9, so a software clock change shifts the
+        // standalone run by at most one cycle.
         const uint64_t armHz = devs[i]->armClockHz();
-        m_wallClockRemainderNs[i] += elapsedNs;
-        const uint64_t armCycles = m_wallClockRemainderNs[i] * armHz / 1'000'000'000ull;
+        m_wallClockRemainderNs[i] += elapsedNs * armHz;
+        const uint64_t armCycles = m_wallClockRemainderNs[i] / 1'000'000'000ull;
         if (armCycles == 0) continue;  // sub-1-ARM-cycle delta; keep the remainder and grow it.
-        m_wallClockRemainderNs[i] -= armCycles * 1'000'000'000ull / armHz;
+        m_wallClockRemainderNs[i] -= armCycles * 1'000'000'000ull;
         m_memoryCard[i].runPocketstation(armCycles);
     }
+    // Saves a device makes while the emulator is paused reach the card file too.
+    syncPocketstationFlash();
 }
 
 // clk cycle byte
@@ -398,6 +401,10 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
     const bool deselected = (m_regs.control & ControlFlags::SELECT_ENABLE) && (!(value & ControlFlags::SELECT_ENABLE));
     const bool selected = (!(m_regs.control & ControlFlags::SELECT_ENABLE)) && (value & ControlFlags::SELECT_ENABLE);
     const bool portChanged = (m_regs.control & ControlFlags::WHICH_PORT) && (!(value & ControlFlags::WHICH_PORT));
+    // Either direction with /SEL held: the old port's line drops and the new port's rises.
+    const bool portSwitched = (m_regs.control & ControlFlags::SELECT_ENABLE) && (value & ControlFlags::SELECT_ENABLE) &&
+                              ((m_regs.control ^ value) & ControlFlags::WHICH_PORT);
+    const unsigned oldPort = (m_regs.control & ControlFlags::WHICH_PORT) ? 1 : 0;
     const bool wasReady = isTransmitReady();
 
     m_regs.control = value;
@@ -415,9 +422,14 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_memoryCard[0].deselect();
         m_memoryCard[1].deselect();
         m_bufferIndex = 0;
+        syncPocketstationFlash();
     }
 
-    if (selected) {
+    // The port 2 -> 1 case is handled above; port 1 -> 2 still has to release the PocketStation on
+    // port 1. Ordinary cards are left as they were.
+    if (portSwitched && !portChanged && m_memoryCard[oldPort].getPocketstation()) m_memoryCard[oldPort].deselect();
+
+    if (selected || portSwitched) {
         // /SEL is shared by the pad and the card of a port; a PocketStation sees every select.
         m_memoryCard[(value & ControlFlags::WHICH_PORT) ? 1 : 0].selectPocketstation();
     }
@@ -754,7 +766,23 @@ void PCSX::SIO::saveMcd(int mcd) {
     }
 }
 
+void PCSX::SIO::syncPocketstationFlash() {
+    if (m_memoryCard[0].syncPocketstationFlash()) {
+        m_memoryCard[0].commit(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().string());
+    }
+    if (m_memoryCard[1].syncPocketstationFlash()) {
+        m_memoryCard[1].commit(PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().string());
+    }
+}
+
+void PCSX::SIO::reloadPocketstations() {
+    syncPocketstationFlash();
+    m_memoryCard[0].reloadPocketstation();
+    m_memoryCard[1].reloadPocketstation();
+}
+
 void PCSX::SIO::togglePocketstationMode() {
+    syncPocketstationFlash();
     if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Pocketstation>()) {
         m_memoryCard[0].enablePocketstation();
     } else {
