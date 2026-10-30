@@ -104,9 +104,9 @@ class PocketStationFlashSync : public ::testing::Test {
   protected:
     void SetUp() override {
         m_kernel = findKernel();
-        if (m_kernel.empty() || std::filesystem::file_size(m_kernel) != 16384) {
-            GTEST_SKIP() << "no PocketStation kernel image; build src/pocketstation/openpsk";
-        }
+        if (m_kernel.empty()) GTEST_SKIP() << "no PocketStation kernel image; build src/pocketstation/openpsk";
+        std::error_code ec;
+        ASSERT_EQ(std::filesystem::file_size(m_kernel, ec), 16384u) << m_kernel << " is not a 16 KiB kernel image";
         m_dir = std::filesystem::temp_directory_path() /
                 ("pcsx-redux-psk-sync-" + std::to_string(::testing::UnitTest::GetInstance()->random_seed()) + "-" +
                  ::testing::UnitTest::GetInstance()->current_test_info()->name());
