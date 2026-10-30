@@ -247,10 +247,9 @@ struct CellMap {
     std::vector<uint8_t> sample;    // per cell: 0 = not played, 1-31 = sample number on the first visit
     std::vector<bool> conflict;     // the cell is reached with two different samples
     std::vector<uint32_t> samples;  // every sample the cell is reached with, bit n = sample n
-    // The channel's last note, as a finetune 0 note index, and the sample it was keyed with: what a
-    // cell without a period plays from. lastNote is -1 when unknown, -2 when it depends on the path.
-    std::vector<int8_t> lastNote;
-    std::vector<uint8_t> lastNoteSample;
+    // Every last note the channel can have at the cell, as a finetune 0 note index and the sample it
+    // was keyed with: what a cell without a period plays from. Unknown notes are left out.
+    std::vector<std::vector<std::pair<int8_t, uint8_t>>> lastNotes;
     // The channel's tone portamento speed (the last nonzero 3xx), and the sample current when it was
     // set: what 300 and 5xy slide at. speedFrom is 0 when no speed was set, 0xff when it depends on
     // the path.
@@ -265,8 +264,7 @@ inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels,
     map.sample.assign(patternCount * 64 * channels, 0);
     map.conflict.assign(map.sample.size(), false);
     map.samples.assign(map.sample.size(), 0);
-    map.lastNote.assign(map.sample.size(), -1);
-    map.lastNoteSample.assign(map.sample.size(), 0);
+    map.lastNotes.assign(map.sample.size(), {});
     map.speed.assign(map.sample.size(), 0);
     map.speedFrom.assign(map.sample.size(), 0);
     std::vector<bool> seen(map.sample.size(), false);
@@ -315,16 +313,16 @@ inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels,
                     speed[ch] = c[3];
                     speedFrom[ch] = current[ch];
                 }
+                if (lastNote[ch] >= 0) {
+                    const std::pair<int8_t, uint8_t> last(int8_t(lastNote[ch]), lastNoteSample[ch]);
+                    auto& notes = map.lastNotes[cell];
+                    if (std::find(notes.begin(), notes.end(), last) == notes.end()) notes.push_back(last);
+                }
                 if (!seen[cell]) {
                     seen[cell] = true;
-                    map.lastNote[cell] = int8_t(lastNote[ch]);
-                    map.lastNoteSample[cell] = lastNoteSample[ch];
                     map.speed[cell] = speed[ch];
                     map.speedFrom[cell] = speedFrom[ch];
                 } else {
-                    if ((map.lastNote[cell] != lastNote[ch]) || (map.lastNoteSample[cell] != lastNoteSample[ch])) {
-                        map.lastNote[cell] = -2;
-                    }
                     if ((map.speed[cell] != speed[ch]) || (map.speedFrom[cell] != speedFrom[ch])) {
                         map.speedFrom[cell] = 0xff;
                     }
@@ -439,11 +437,14 @@ inline std::vector<std::string> rewritePatterns(std::vector<uint8_t>& patterns, 
         switch (fx) {
             case 0x0:
                 if (c[3] != 0) {
+                    // Without a note, check the highest note the channel can be on.
                     int base = moved;
-                    if ((period == 0) && (map.lastNote[cell] >= 0)) {
-                        const unsigned from = map.lastNoteSample[cell];
-                        base = map.lastNote[cell] + ((from != 0 && stretches[from]) ? stretches[from]->semitones : 0);
-                        base = std::clamp(base, 0, c_maxNote);
+                    if (period == 0) {
+                        for (auto [note, from] : map.lastNotes[cell]) {
+                            const int shifted =
+                                note + ((from != 0 && stretches[from]) ? stretches[from]->semitones : 0);
+                            base = std::max(base, std::clamp(shifted, 0, c_maxNote));
+                        }
                     }
                     if ((base >= 0) && ((base + std::max(c[3] >> 4, c[3] & 0x0f)) > 35)) arpeggios[active]++;
                 }

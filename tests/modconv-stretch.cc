@@ -252,7 +252,8 @@ TEST(ModConvStretch, ChecksArpeggiosWithoutANote) {
     setCell(p, channels, 2, 0, 0, 0, 0x0, 0x01);  // 28 + 5 + 1 = 34, fine
     const uint8_t orders[1] = {0};
     auto map = mapCells(p, channels, orders, 1);
-    EXPECT_EQ(map.lastNote[1 * channels], 28);
+    ASSERT_EQ(map.lastNotes[1 * channels].size(), 1u);
+    EXPECT_EQ(map.lastNotes[1 * channels][0].first, 28);
     auto warnings = rewritePatterns(p, map, stretchSample2());
     ASSERT_EQ(warnings.size(), 1u);
     EXPECT_EQ(warnings[0], "sample 2: 1 arpeggios reach past the period table");
@@ -296,4 +297,22 @@ TEST(ModConvStretch, WalksAgainWithAnotherSlideSpeed) {
     EXPECT_EQ(cellParam(p, channels, 0, 0), 0);
     ASSERT_EQ(warnings.size(), 1u);
     EXPECT_EQ(warnings[0], "sample 2: 1 tone portamentos reuse a speed set with another sample, left as they were");
+}
+
+// An arpeggio without a note reached after a high note on one path and a low note on another is
+// checked against the high one.
+TEST(ModConvStretch, ChecksArpeggiosAgainstEveryLastNote) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(3 * channels * 256, 0);
+    setCell(p, channels, 0, 0, 0, 0, 0x0, 0x07);                   // pattern 0: arpeggio, no note
+    setCell(p, channels, 64 + 0, 0, 2, c_periodTable[28], 0, 0);   // pattern 1: high note
+    setCell(p, channels, 64 + 1, 0, 0, 0, 0xd, 0x00);              // break
+    setCell(p, channels, 128 + 0, 0, 2, c_periodTable[12], 0, 0);  // pattern 2: low note
+    setCell(p, channels, 128 + 1, 0, 0, 0, 0xd, 0x00);             // break
+    const uint8_t orders[4] = {2, 0, 1, 0};
+    auto map = mapCells(p, channels, orders, 4);
+    EXPECT_EQ(map.lastNotes[0].size(), 2u);
+    auto warnings = rewritePatterns(p, map, stretchSample2());
+    ASSERT_EQ(warnings.size(), 1u);
+    EXPECT_EQ(warnings[0], "sample 2: 1 arpeggios reach past the period table");
 }
