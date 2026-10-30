@@ -274,6 +274,24 @@ typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2d_currentcommand"), 
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2d_sector"), 79> SIOMCD2DSector;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd2d_dataoffset"), 80> SIOMCD2DDataOffset;
 
+// The pad's own side of a transfer, one per port. Absent from states made before this existed;
+// "present" tells a real all-defaults pad from a state that never carried one.
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("present"), 1> PadPresent;
+typedef Protobuf::Field<Protobuf::UInt8, TYPESTRING("cmd"), 2> PadCmd;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("config_mode"), 3> PadConfigMode;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("analog_mode"), 4> PadAnalogMode;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("buffer_len"), 5> PadBufferLen;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("current_byte"), 6> PadCurrentByte;
+typedef Protobuf::Field<Protobuf::FixedBytes<256>, TYPESTRING("buffer"), 7> PadBuffer;
+typedef Protobuf::Field<Protobuf::FixedBytes<6>, TYPESTRING("motor_mapping"), 8> PadMotorMapping;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("config_commands_used"), 9> PadConfigCommandsUsed;
+typedef Protobuf::Field<Protobuf::UInt8, TYPESTRING("old_method_latch"), 10> PadOldMethodLatch;
+typedef Protobuf::Message<TYPESTRING("PadTransfer"), PadPresent, PadCmd, PadConfigMode, PadAnalogMode, PadBufferLen,
+                          PadCurrentByte, PadBuffer, PadMotorMapping, PadConfigCommandsUsed, PadOldMethodLatch>
+    PadTransfer;
+typedef Protobuf::MessageField<PadTransfer, TYPESTRING("pad1"), 81> SIOPad1;
+typedef Protobuf::MessageField<PadTransfer, TYPESTRING("pad2"), 82> SIOPad2;
+
 typedef Protobuf::Message<
     TYPESTRING("SIO"), SIOBuffer, SIOStatusReg, SIOModeReg, SIOCtrlReg, SIOBaudReg, SIOBufferMaxIndex, SIOBufferIndex,
     SIOPadState, SIOCurrentDevice, SIOPadAddress, SIOMCD1TempBuffer, SIOMCD1DirectoryFlag, SIOMCD1ChecksumIn,
@@ -288,7 +306,8 @@ typedef Protobuf::Message<
     SIOMCD2BCommandTicks, SIOMCD2BCurrentCommand, SIOMCD2BSector, SIOMCD2BDataOffset, SIOMCD2CTempBuffer,
     SIOMCD2CDirectoryFlag, SIOMCD2CChecksumIn, SIOMCD2CChecksumOut, SIOMCD2CCommandTicks, SIOMCD2CCurrentCommand,
     SIOMCD2CSector, SIOMCD2CDataOffset, SIOMCD2DTempBuffer, SIOMCD2DDirectoryFlag, SIOMCD2DChecksumIn,
-    SIOMCD2DChecksumOut, SIOMCD2DCommandTicks, SIOMCD2DCurrentCommand, SIOMCD2DSector, SIOMCD2DDataOffset>
+    SIOMCD2DChecksumOut, SIOMCD2DCommandTicks, SIOMCD2DCurrentCommand, SIOMCD2DSector, SIOMCD2DDataOffset, SIOPad1,
+    SIOPad2>
     SIO;
 typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 7> SIOField;
 // skip id 8
@@ -462,8 +481,8 @@ typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, Thumbnail
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, GtePendingWriteInfo, Registers, GPU,
                             ADPCMDecode, XA, ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx,
-                            Channel, EnvelopeCheckpoint, SPU, SIO, CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware,
-                            Rcnt, Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
+                            Channel, EnvelopeCheckpoint, SPU, PadTransfer, SIO, CDQueueElement, CDMSF, CDADPCM, CDRom,
+                            Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();

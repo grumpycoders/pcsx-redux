@@ -27,12 +27,65 @@
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/mdec.h"
+#include "core/pad.h"
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/sio.h"
 #include "spu/interface.h"
+
+namespace {
+
+void serializePad(PCSX::SaveStates::PadTransfer& dst, PCSX::Pads::Port port) {
+    using namespace PCSX::SaveStates;
+    PCSX::Pads::TransferState pad;
+    PCSX::g_emulator->m_pads->getTransferState(port, pad);
+    dst.get<PadPresent>().value = true;
+    dst.get<PadCmd>().value = pad.cmd;
+    dst.get<PadConfigMode>().value = pad.configMode;
+    dst.get<PadAnalogMode>().value = pad.analogMode;
+    dst.get<PadBufferLen>().value = pad.bufferLen;
+    dst.get<PadCurrentByte>().value = pad.currentByte;
+    dst.get<PadBuffer>().copyFrom(pad.buf);
+    dst.get<PadMotorMapping>().copyFrom(pad.motorMapping);
+    dst.get<PadConfigCommandsUsed>().value = pad.configCommandsUsed;
+    dst.get<PadOldMethodLatch>().value = pad.oldMethodLatch;
+}
+
+// A state from before the pads were serialised has no pad message at all, and the pads then keep
+// whatever they had, as they always did.
+void deserializePad(const PCSX::SaveStates::PadTransfer& src, PCSX::Pads::Port port) {
+    using namespace PCSX::SaveStates;
+    if (!src.get<PadPresent>().value) return;
+    PCSX::Pads::TransferState pad;
+    pad.cmd = src.get<PadCmd>().value;
+    pad.configMode = src.get<PadConfigMode>().value;
+    pad.analogMode = src.get<PadAnalogMode>().value;
+    pad.bufferLen = src.get<PadBufferLen>().value;
+    pad.currentByte = src.get<PadCurrentByte>().value;
+    src.get<PadBuffer>().copyTo(pad.buf);
+    src.get<PadMotorMapping>().copyTo(pad.motorMapping);
+    pad.configCommandsUsed = src.get<PadConfigCommandsUsed>().value;
+    pad.oldMethodLatch = src.get<PadOldMethodLatch>().value;
+    PCSX::g_emulator->m_pads->setTransferState(port, pad);
+}
+
+void serializePads(PCSX::SaveStates::SaveState& state) {
+    using namespace PCSX::SaveStates;
+    auto& sio = state.get<SIOField>();
+    serializePad(sio.get<SIOPad1>(), PCSX::Pads::Port::Port1);
+    serializePad(sio.get<SIOPad2>(), PCSX::Pads::Port::Port2);
+}
+
+void deserializePads(const PCSX::SaveStates::SaveState& state) {
+    using namespace PCSX::SaveStates;
+    const auto& sio = state.get<SIOField>();
+    deserializePad(sio.get<SIOPad1>(), PCSX::Pads::Port::Port1);
+    deserializePad(sio.get<SIOPad2>(), PCSX::Pads::Port::Port2);
+}
+
+}  // namespace
 
 PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() { return Access::constructSaveState(); }
 
@@ -187,6 +240,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::Access::constructSaveState() {
             SIOMCD2DCurrentCommand{g_emulator->m_sio->m_tapMemoryCard[5].m_currentCommand},
             SIOMCD2DSector{g_emulator->m_sio->m_tapMemoryCard[5].m_sector},
             SIOMCD2DDataOffset{g_emulator->m_sio->m_tapMemoryCard[5].m_dataOffset},
+            SIOPad1{},
+            SIOPad2{},
         },
         Hardware{},
         Counters{},
@@ -312,6 +367,7 @@ std::string PCSX::SaveStates::save() {
         });
 
     g_emulator->m_callStacks->serialize(&wrapper);
+    serializePads(state);
 
     Protobuf::OutSlice slice;
     state.serialize(&slice);
@@ -344,6 +400,8 @@ void PCSX::SaveStates::capture(SaveState& state) {
 
     g_emulator->m_callStacks->serialize(&wrapper);
 
+    serializePads(state);
+
     /* And this is the half that never existed: the flat live -> copy for the ref/ptr fields. */
     state.capture();
 }
@@ -372,6 +430,7 @@ void PCSX::SaveStates::restore(SaveState& state) {
 
     g_emulator->m_counters->deserialize(&wrapper);
     g_emulator->m_mdec->deserialize(&wrapper);
+    deserializePads(state);
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
@@ -546,6 +605,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
 
     g_emulator->m_counters->deserialize(&wrapper);
     g_emulator->m_mdec->deserialize(&wrapper);
+    deserializePads(state);
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
