@@ -366,6 +366,16 @@ int pcsxMain(int argc, char **argv) {
         PCSX::u8string path2 = emuSettings.get<PCSX::Emulator::SettingMcd2>().string();
 
         emulator->m_sio->loadMcds(path1, path2);
+        // The multitap slot B to D cards, port 1 then port 2. SIO reads each one when it is first selected.
+        const auto defaultTapMcd = [](auto &setting, const PCSX::u8string &defaultPath) {
+            if (setting.empty()) setting = defaultPath;
+        };
+        defaultTapMcd(emuSettings.get<PCSX::Emulator::SettingMcd1B>(), MAKEU8(u8"memcard1b.mcd"));
+        defaultTapMcd(emuSettings.get<PCSX::Emulator::SettingMcd1C>(), MAKEU8(u8"memcard1c.mcd"));
+        defaultTapMcd(emuSettings.get<PCSX::Emulator::SettingMcd1D>(), MAKEU8(u8"memcard1d.mcd"));
+        defaultTapMcd(emuSettings.get<PCSX::Emulator::SettingMcd2B>(), MAKEU8(u8"memcard2b.mcd"));
+        defaultTapMcd(emuSettings.get<PCSX::Emulator::SettingMcd2C>(), MAKEU8(u8"memcard2c.mcd"));
+        defaultTapMcd(emuSettings.get<PCSX::Emulator::SettingMcd2D>(), MAKEU8(u8"memcard2d.mcd"));
         auto biosCfg = args.value("bios");
         if (biosCfg.has_value()) emuSettings.get<PCSX::Emulator::SettingBios>() = biosCfg.value();
 
@@ -480,6 +490,10 @@ int pcsxMain(int argc, char **argv) {
 
     // After settings are loaded, we're fine setting the SPU part of the emulation.
     emulator->m_spu->init();
+    auto wavDump = args.value("wavdump", "");
+    if (!wavDump.empty() && !emulator->m_spu->setWavDump(PCSX::u8string(MAKEU8(wavDump.c_str())))) {
+        fmt::print(stderr, "-wavdump: unable to create '{}'\n", wavDump);
+    }
 
     // Make sure the Lua environment is set.
     bool luacovEnabled = false;

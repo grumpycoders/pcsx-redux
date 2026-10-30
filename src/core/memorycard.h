@@ -19,14 +19,22 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <memory>
 #include <vector>
 
 #include "core/sstate.h"
+#include "core/system.h"
 
 namespace PCSX {
+
+namespace SaveStates {
+struct Access;
+}
+
 class SIO;
 
 namespace PocketStation {
@@ -135,7 +143,7 @@ class MemoryCard {
     };
 
     friend class SIO;
-    friend SaveStates::SaveState SaveStates::constructSaveState();
+    friend struct SaveStates::Access;
 
     static constexpr size_t c_sectorSize = 8 * 16;
     static constexpr size_t c_blockSize = 8192;

@@ -135,15 +135,17 @@ int PCSX::SPU::AdsrEnvelope::Decay() {
 
     // Decay has no mode bit of its own: psx-spx lists it as "Fixed, always Exponential".
     // The release mode bit only governs Release.
+    // The sustain level is only checked on samples where a step lands: on silicon a slow
+    // decay with sustain level 15 holds 0x7fff until its first step, takes it (0x7ff7),
+    // and only then moves to Sustain.
     if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
         envelopeVolFraction = 0;
         envelopeVol += (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >> kExponentialDecreaseShift;
-    }
+        envelopeVol = std::max(envelopeVol, 0);
 
-    envelopeVol = std::max(envelopeVol, 0);
-
-    if (((envelopeVol >> kSustainLevelShift) & kSustainLevelMask) <= m_adsrx.get<exSustainLevel>().value) {
-        m_adsrx.get<exState>().value = ADSRState::Sustain;
+        if (((envelopeVol >> kSustainLevelShift) & kSustainLevelMask) <= m_adsrx.get<exSustainLevel>().value) {
+            m_adsrx.get<exState>().value = ADSRState::Sustain;
+        }
     }
 
     return commit(envelopeVol, envelopeVolFraction);

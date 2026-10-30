@@ -63,6 +63,15 @@ struct VramWriteOp final : SoftOp {
     void run(impl &r) override;
 };
 
+// The row parity drawing primitives skip (SoftRenderer::m_skipParity). It is a
+// function of the beam position, so the emulation thread samples it and hands
+// it to the renderer in primitive order.
+struct SkipParityOp final : SoftOp {
+    int8_t parity;
+    explicit SkipParityOp(int8_t p) : parity(p) {}
+    void run(impl &r) override;
+};
+
 // Single producer (the emulation thread), single consumer (the renderer
 // thread). The renderer is the only thread touching VRAM and render state
 // while it runs; the producer calls sync() before anything that reads them.

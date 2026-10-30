@@ -63,7 +63,7 @@ LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type,
     }
     LuaBreakpoint* ret = new LuaBreakpoint();
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
-        address, type, width, std::string("Lua Breakpoint"), cause,
+        address, type, width, std::string("Lua Breakpoint"), std::string(label && *label ? label : cause),
         [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
             try {
                 return invoker(address, width, cause);
@@ -165,6 +165,36 @@ LuaScreenShot takeScreenShot() {
 
 double getGuestFPS() { return PCSX::g_emulator->m_gpuLogger->getGuestFPS(); }
 
+void setGPULogging(bool enabled, bool overdrawStats) {
+    auto logger = PCSX::g_emulator->m_gpuLogger.get();
+    logger->setEnabled(enabled);
+    logger->m_overdrawStats = overdrawStats;
+}
+
+struct LuaOverdrawStats {
+    bool valid;
+    uint64_t total;
+    uint32_t pixels, max;
+    uint32_t buckets[5];
+};
+
+uint64_t getOverdrawSum(bool read, int x, int y, int w, int h) {
+    return PCSX::g_emulator->m_gpuLogger->getOverdrawSum(read, x, y, w, h);
+}
+
+LuaOverdrawStats getOverdrawStats(bool read) {
+    LuaOverdrawStats ret = {};
+    auto logger = PCSX::g_emulator->m_gpuLogger.get();
+    if (!logger->hasOverdrawStats()) return ret;
+    auto& stats = read ? logger->getReadOverdraw() : logger->getWrittenOverdraw();
+    ret.valid = true;
+    ret.total = stats.total;
+    ret.pixels = stats.pixels;
+    ret.max = stats.max;
+    for (unsigned i = 0; i < 5; i++) ret.buckets[i] = stats.buckets[i];
+    return ret;
+}
+
 void startGPUDump(PCSX::LuaFFI::LuaFile* file) { PCSX::g_emulator->m_gpuDumper->start(file->file); }
 void stopGPUDump() { PCSX::g_emulator->m_gpuDumper->stop(); }
 bool isGPUDumpArmed() { return PCSX::g_emulator->m_gpuDumper->armed(); }
@@ -176,6 +206,8 @@ void unloadGPUDumpPlayer() { PCSX::g_emulator->m_gpuDumpPlayer->unload(); }
 bool stepGPUDumpPlayer() { return PCSX::g_emulator->m_gpuDumpPlayer->step(); }
 void rewindGPUDumpPlayer() { PCSX::g_emulator->m_gpuDumpPlayer->rewind(); }
 uint64_t getGPUDumpPlayerFrame() { return PCSX::g_emulator->m_gpuDumpPlayer->frame(); }
+void setGPUDumpPlayerLogging(bool enabled) { PCSX::g_emulator->m_gpuDumpPlayer->logger()->setLogging(enabled); }
+uint32_t getGPUDumpPlayerLoggedCount() { return PCSX::g_emulator->m_gpuDumpPlayer->logger()->loggedCount(); }
 PCSX::Slice* getGPUDumpPlayerVRAM() {
     auto gpu = PCSX::g_emulator->m_gpuDumpPlayer->gpu();
     if (!gpu) return new PCSX::Slice();
@@ -275,6 +307,9 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, loadCpuTrace);
     REGISTER(L, takeScreenShot);
     REGISTER(L, getGuestFPS);
+    REGISTER(L, setGPULogging);
+    REGISTER(L, getOverdrawStats);
+    REGISTER(L, getOverdrawSum);
     REGISTER(L, startGPUDump);
     REGISTER(L, stopGPUDump);
     REGISTER(L, isGPUDumpArmed);
@@ -285,6 +320,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, stepGPUDumpPlayer);
     REGISTER(L, rewindGPUDumpPlayer);
     REGISTER(L, getGPUDumpPlayerFrame);
+    REGISTER(L, setGPUDumpPlayerLogging);
+    REGISTER(L, getGPUDumpPlayerLoggedCount);
     REGISTER(L, getGPUDumpPlayerVRAM);
     REGISTER(L, getVRAM);
     REGISTER(L, createSaveState);

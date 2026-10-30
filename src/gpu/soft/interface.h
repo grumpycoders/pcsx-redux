@@ -40,6 +40,10 @@ class impl final : public GPU, private SoftRenderer {
     void presentFromGui() override;
     bool configure() override;
     void debug() override;
+    void debugVideoMode(uint32_t stat);
+    void debugDisplayArea();
+    void debugDrawing(uint32_t stat);
+    void debugRowSkip(uint32_t stat);
 
     void setDither(int setting) override {
         m_queue.sync();
@@ -161,7 +165,26 @@ class impl final : public GPU, private SoftRenderer {
     }
     template <Shading shading, Shape shape, Textured textured, Blend blend, Modulation modulation>
     void dispatchPoly(Poly<shading, shape, textured, blend, modulation> *);
+    // NTSC 480i with GP0(E1h).10 (draw to display area) clear: drawing primitives and GP0(02h) do not
+    // write the VRAM rows whose (y & 1) equals GPUSTAT.31 at the time they are drawn. updateSkipParity()
+    // samples that on this thread before each drawing primitive is dispatched, and forwards it to the
+    // renderer's m_skipParity when it changed. m_pushedSkipParity is this thread's view of the renderer
+    // copy; s_skipParityUnknown matches nothing, so the next drawing primitive always forwards.
+    static constexpr int8_t s_skipParityUnknown = -2;
+    int8_t m_pushedSkipParity = s_skipParityUnknown;
+    // GP0(E1h).10 as last written by GP0(E1h).
+    bool m_drawToDisplay = false;
+    friend struct SkipParityOp;
+    void updateSkipParity();
+    template <typename Prim>
+    void dispatchDraw(Prim *prim) {
+        updateSkipParity();
+        dispatch(prim);
+    }
     void texturePageStatus(GPU::TPage &tpage);
+    // A textured polygon's texpage only loads GPUSTAT bits 0-8; bits 9 and 10 (dither, drawing to the
+    // display area) keep their GP0(E1h) values, measured on v0 and v2 GPUs.
+    void polygonTexturePageStatus(const GPU::TPage &tpage);
     void maskBitStatus(const GPU::MaskBit &mask);
     // The emulation thread's copy of SoftRenderer::m_ditherMode, which decides whether a textured polygon's
     // texpage gets its dither bit forced. It follows the same rule over the same texpage sequence.

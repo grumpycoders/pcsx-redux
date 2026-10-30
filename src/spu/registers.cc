@@ -40,6 +40,8 @@ uint64_t readerCycle() { return PCSX::g_emulator->m_cpu->m_regs.cycle; }
 
 uint64_t PCSX::SPU::impl::cycleToSample(uint64_t cycle) const { return cycle / cyclesPerSample(); }
 
+uint64_t PCSX::SPU::impl::sampleToCycle(uint64_t sample) const { return sample * cyclesPerSample(); }
+
 // Evaluate voice `ch`'s envelope at `cycle` by stepping a COPY forward from the
 // key-on checkpoint. The mixer's own adsr.step() in synthesizeVoice is untouched;
 // this is a second, read-only walk that happens to use the same arithmetic.
@@ -367,22 +369,20 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                                              (val == 0xffff || val <= 0x200) ? 0 : (uint32_t)val << 3, 0, val);
                 break;
 
-            // CD audio volume feeds the XA path, which runs on the CPU thread.
+            // CD audio volume: the mixer applies it to the CD input (applyRegister).
             case H_CDLeft:
                 iLeftXAVol = val & 0x7fff;
                 if (cddavCallback) {
                     cddavCallback(0, val);
                 }
-                PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x, unimplemented\n", val);
-                return;
+                break;
 
             case H_CDRight:
                 iRightXAVol = val & 0x7fff;
                 if (cddavCallback) {
                     cddavCallback(1, val);
                 }
-                PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x, unimplemented\n", val);
-                return;
+                break;
 
             case H_SPUon1:
                 SoundOn(0, 16, val, cycle);
@@ -410,6 +410,33 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
 // The mixer-side half of a register write, run on the mixer thread when the write comes due
 // (or on the CPU thread with the mixer stopped).
+// The mixer-side half of a main volume or CD volume write. Returns false for any other register.
+bool PCSX::SPU::impl::applyMixVolume(uint32_t r, uint16_t val) {
+    switch (r) {
+        case H_SPUmvolL:
+            m_mainVolume.applyLeft(val);
+            m_mainLeftWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Left = %04x\n", val);
+            return true;
+        case H_SPUmvolR:
+            m_mainVolume.applyRight(val);
+            m_mainRightWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Right = %04x\n", val);
+            return true;
+        case H_CDLeft:
+            m_cdVolumeLeft = static_cast<int16_t>(val);
+            m_cdLeftWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x\n", val);
+            return true;
+        case H_CDRight:
+            m_cdVolumeRight = static_cast<int16_t>(val);
+            m_cdRightWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x\n", val);
+            return true;
+    }
+    return false;
+}
+
 void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
     const uint32_t r = reg & 0xfff;
 
@@ -467,6 +494,8 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
         return;
     }
 
+    if (applyMixVolume(r, val)) return;
+
     switch (r) {
         case H_SPUctrl:
             // Writing IRQ9 Enable = 0 is the acknowledge: it is the only thing that clears
@@ -512,18 +541,6 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
 
         case H_ExtRight:
             PCSX::PSXSPU_LOGGER::Log("SPU.write, External Audio Input Volume Right = %04x, unimplemented\n", val);
-            break;
-
-        case H_SPUmvolL:
-            m_mainVolume.applyLeft(val);
-            m_mainLeftWritten = true;
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Left = %04x\n", val);
-            break;
-
-        case H_SPUmvolR:
-            m_mainVolume.applyRight(val);
-            m_mainRightWritten = true;
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Right = %04x\n", val);
             break;
 
         // Voice 0..23 ON/OFF (status) (ENDX), read-only.

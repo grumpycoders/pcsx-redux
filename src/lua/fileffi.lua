@@ -57,8 +57,7 @@ local function readAt(self, ptr, size, pos)
         size = Support.extra.safeFFI('File::readAt(C.readFileAtBuffer)', C.readFileAtBuffer, self._wrapper, buf, pos)
         buf.size = size
         return validateBuffer(buf)
-    elseif type(ptr) == 'cdata' and type(size) == 'number' and pos == nil and
-        ffi.typeof(ptr) == Support.File._LuaBuffer then
+    elseif type(ptr) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(ptr) == Support.File._LuaBuffer then
         return Support.extra.safeFFI('File::readAt(C.readFileAtBuffer)', C.readFileAtBuffer, self._wrapper,
                                      validateBuffer(ptr), size)
     elseif type(ptr) == 'userdata' then
@@ -90,8 +89,7 @@ local function write(self, data, size)
 end
 
 local function writeAt(self, data, size, pos)
-    if type(data) == 'cdata' and type(size) == 'number' and pos == nil and
-        ffi.typeof(data) == Support.File._LuaBuffer then
+    if type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == Support.File._LuaBuffer then
         return Support.extra.safeFFI('File::writeAt(C.writeFileAtBuffer)', C.writeFileAtBuffer, self._wrapper,
                                      validateBuffer(data), size)
     elseif type(data) == 'userdata' and type(size) == 'number' and pos == nil then

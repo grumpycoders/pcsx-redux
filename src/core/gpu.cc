@@ -21,12 +21,15 @@
 
 #include "core/gpu.h"
 
+#include <algorithm>
+#include <cstdlib>
 #include <magic_enum/magic_enum_all.hpp>
 
 #include "core/debug.h"
 #include "core/gpudump.h"
 #include "core/gpulogger.h"
 #include "core/pgxp_mem.h"
+#include "core/psxcounters.h"
 #include "core/psxdma.h"
 #include "core/psxhw.h"
 #include "imgui/imgui.h"
@@ -387,6 +390,25 @@ uint32_t PCSX::GPU::readStatus() {
     return ret;
 }
 
+uint32_t PCSX::GPU::readStatusFromBus() {
+    uint32_t ret = readStatus();
+    // NTSC 480i: GP1(08h) bits 2 and 5 set, bit 3 clear. Timeline measured on a v2 GPU (SCPH-1001)
+    // at 320 and 640 pixels wide, identical at both, counted in hblanks since the vblank that
+    // opened the field. Bit 31 is 1 from line 23 of the 263-line field until the next vblank, and
+    // 0 everywhere else, vblank included. Bit 13 is 1 from line 5 of the 262-line field until
+    // line 6 of the following 263-line field. A v0 GPU (SCPH-1000) gives the same bit 31 and never
+    // sets bit 13; there is no GPU revision setting, so this models v2. PAL is not measured.
+    if ((m_statusControl[8] & 0x2c) == 0x24) {
+        auto &counters = g_emulator->m_counters;
+        uint32_t line = counters->linesSinceVBlank();
+        bool longField = counters->longField();
+        ret &= ~0x80002000;
+        if (longField && (line >= 23)) ret |= 0x80000000;
+        if (longField ? (line < 6) : (line >= 5)) ret |= 0x00002000;
+    }
+    return ret;
+}
+
 bool PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     uint32_t *ptr;
     uint32_t size, bs;
@@ -527,6 +549,8 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             m_processor->reset();
             m_defaultProcessor.setActive();
             m_dmaDirection = 0;
+            // GP1(00h) also resets the display mode, which readStatusFromBus() keys on.
+            m_statusControl[8] = 0x08000000;
             CtrlReset ctrl;
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
@@ -1616,16 +1640,65 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&ad
     }
 }
 
+// Polygons fill a span from the left edge inclusive to the right edge exclusive, and rows from the top
+// inclusive to the bottom exclusive. That is the same as testing the point x + e, y + e * e for a tiny e
+// strictly inside the triangle: when the pixel sits exactly on an edge, the edge's slope decides.
 bool PCSX::GPU::Logged::isInsideTriangle(int x, int y, int x1, int y1, int x2, int y2, int x3, int y3) {
-    int o1 = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
-    int o2 = (x - x2) * (y3 - y2) - (y - y2) * (x3 - x2);
-    int o3 = (x - x3) * (y1 - y3) - (y - y3) * (x1 - x3);
-    return (o1 >= 0 && o2 >= 0 && o3 >= 0) || (o1 <= 0 && o2 <= 0 && o3 <= 0);
+    auto side = [x, y](int ax, int ay, int bx, int by) {
+        int e = (bx - ax) * (y - ay) - (by - ay) * (x - ax);
+        if (e == 0) e = ay - by;
+        if (e == 0) e = bx - ax;
+        return e;
+    };
+    int s1 = side(x1, y1, x2, y2);
+    int s2 = side(x2, y2, x3, y3);
+    int s3 = side(x3, y3, x1, y1);
+    return (s1 > 0 && s2 > 0 && s3 > 0) || (s1 < 0 && s2 < 0 && s3 < 0);
 }
 
+// Walks the same pixels as the soft renderer's line rasterizer (gpu/soft/lines.cc), including the
+// size cull that drops a segment with |dx| >= 1024 or |dy| >= 512.
 bool PCSX::GPU::Logged::isInsideLine(int x, int y, int x1, int y1, int x2, int y2) {
-    int o1 = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
-    return o1 == 0;
+    if (std::abs(x2 - x1) >= 1024 || std::abs(y2 - y1) >= 512) return false;
+    if (x2 < x1) {
+        std::swap(x1, x2);
+        std::swap(y1, y2);
+    }
+    if ((x < x1) || (x > x2) || (y < std::min(y1, y2)) || (y > std::max(y1, y2))) return false;
+    const int dx = x2 - x1;
+    const int dy = y2 - y1;
+    if ((dx == 0) || (dy == 0)) return true;
+    const int ady = std::abs(dy);
+    const int step = dy > 0 ? 1 : -1;
+    int px = x1, py = y1;
+    if (ady > dx) {
+        // Y-major: midpoint bias, x nudges right.
+        int d = 2 * dx - ady;
+        while (true) {
+            if ((px == x) && (py == y)) return true;
+            if (py == y2) return false;
+            if (d <= 0) {
+                d += 2 * dx;
+            } else {
+                d += 2 * (dx - ady);
+                px++;
+            }
+            py += step;
+        }
+    }
+    // X-major: pixel-centre bias, y nudges toward y2.
+    int d = 3 * ady - dx;
+    while (true) {
+        if ((px == x) && (py == y)) return true;
+        if (px == x2) return false;
+        if (d <= 0) {
+            d += 2 * ady;
+        } else {
+            d += 2 * (ady - dx);
+            py += step;
+        }
+        px++;
+    }
 }
 
 void PCSX::GPU::getRestoreSequence(std::vector<uint32_t> &gp0, std::vector<uint32_t> &gp1) const {

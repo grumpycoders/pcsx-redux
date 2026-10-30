@@ -169,6 +169,13 @@ class Emulator {
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
     typedef SettingPath<TYPESTRING("Mcd1")> SettingMcd1;
     typedef SettingPath<TYPESTRING("Mcd2")> SettingMcd2;
+    // The memory cards in a multitap's slots B to D, port 1 then port 2. Slot A is Mcd1 or Mcd2.
+    typedef SettingPath<TYPESTRING("Mcd1B")> SettingMcd1B;
+    typedef SettingPath<TYPESTRING("Mcd1C")> SettingMcd1C;
+    typedef SettingPath<TYPESTRING("Mcd1D")> SettingMcd1D;
+    typedef SettingPath<TYPESTRING("Mcd2B")> SettingMcd2B;
+    typedef SettingPath<TYPESTRING("Mcd2C")> SettingMcd2C;
+    typedef SettingPath<TYPESTRING("Mcd2D")> SettingMcd2D;
     typedef SettingPath<TYPESTRING("Bios")> SettingBios;
     typedef SettingPath<TYPESTRING("PpfDir")> SettingPpfDir;
     typedef SettingPath<TYPESTRING("PsxExe")> SettingPsxExe;
@@ -178,11 +185,18 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
+    typedef Setting<bool, TYPESTRING("CDRomEntropySeed"), false> SettingCDRomEntropySeed;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
     typedef Setting<bool, TYPESTRING("Mcd1Inserted"), true> SettingMcd1Inserted;
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
+    typedef Setting<bool, TYPESTRING("Mcd1BInserted"), false> SettingMcd1BInserted;
+    typedef Setting<bool, TYPESTRING("Mcd1CInserted"), false> SettingMcd1CInserted;
+    typedef Setting<bool, TYPESTRING("Mcd1DInserted"), false> SettingMcd1DInserted;
+    typedef Setting<bool, TYPESTRING("Mcd2BInserted"), false> SettingMcd2BInserted;
+    typedef Setting<bool, TYPESTRING("Mcd2CInserted"), false> SettingMcd2CInserted;
+    typedef Setting<bool, TYPESTRING("Mcd2DInserted"), false> SettingMcd2DInserted;
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     typedef Setting<uint8_t, TYPESTRING("MemoryFillValue"), 0x00> SettingMemoryFillValue;
@@ -220,9 +234,11 @@ class Emulator {
              SettingSoftGPUThreaded, SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching,
              SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA,
              SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation, SettingMcd2Pocketstation,
-             SettingPocketstationBios, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval,
-             SettingRewindCount>
+             SettingPocketstationBios, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath, SettingPIOConnected,
+             SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval, SettingRewindCount,
+             SettingCDRomEntropySeed, SettingMcd1B, SettingMcd1C, SettingMcd1D, SettingMcd2B, SettingMcd2C,
+             SettingMcd2D, SettingMcd1BInserted, SettingMcd1CInserted, SettingMcd1DInserted, SettingMcd2BInserted,
+             SettingMcd2CInserted, SettingMcd2DInserted>
         settings;
     class PcsxConfig {
       public:
@@ -252,6 +268,9 @@ class Emulator {
     // In-memory rewind ring; defined in psxemulator.cc so this header does not pull in sstate.h.
     struct RewindRing;
     std::unique_ptr<RewindRing> m_rewindRing;
+    bool m_rewindCaptureSuppressed = false;
+    bool m_rewindCapturePending = false;
+    void captureRewindState();
 
     // Used for overclocking
     // Make the timing events trigger faster as we are currently assuming everything
@@ -275,7 +294,8 @@ class Emulator {
     void reset();
     void shutdown();
     void vsync();
-    // Runs what vsync() deferred: the VSync event, the system update and the rewind snapshot.
+    // Runs what vsync() deferred: the VSync event, the system update and asking for the rewind
+    // snapshot.
     // Called from R3000Acpu::branchTest(), where m_regs.pc is the real next pc.
     void dispatchVSync();
     void setPGXPMode(uint32_t pgxpMode);
@@ -287,10 +307,27 @@ class Emulator {
     // queues the step for the main loop otherwise, like SaveStates::loadSafe(). Either way it
     // returns whether there was a snapshot to step back to. rewindStateNow() is the unsafe half
     // the main loop applies a queue with, and rewindStateCount() leaves out queued steps.
+    // createRewindState() called from inside the emulation, which is where the ring's own
+    // captures come from, only marks the snapshot as wanted: R3000Acpu::branchTest() takes it
+    // with flushRewindCapture() once it is done, so restoring it doesn't skip any of its work.
     void createRewindState();
+    void flushRewindCapture();
     bool rewindState();
     bool rewindStateNow(unsigned steps = 1);
     size_t rewindStateCount() const;
+
+    // Random access into the same ring, for replaying from a snapshot rather than stepping back
+    // to it, which is what the gdb server's reverse execution does. Index 0 is the oldest
+    // snapshot. The cycle is m_regs.cycle at capture. restoreRewindSnapshot() leaves the
+    // snapshot on the ring, and has the same constraint as rewindStateNow(): nothing of the
+    // emulation may be on the stack. While a replay is suppressing captures, the vsyncs it runs
+    // through don't push copies of what the ring already holds. dropRewindSnapshotsAfter()
+    // discards the snapshots of a future that is about to be executed again.
+    size_t rewindSnapshotCount() const;
+    uint64_t rewindSnapshotCycle(size_t index) const;
+    void restoreRewindSnapshot(size_t index);
+    void dropRewindSnapshotsAfter(uint64_t cycle);
+    void suppressRewindCapture(bool suppress) { m_rewindCaptureSuppressed = suppress; }
 
     void setLua();
 

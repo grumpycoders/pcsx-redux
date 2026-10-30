@@ -76,6 +76,12 @@
     <ClCompile Include="..\..\src\core\sio.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\pcdrv-net-wasm.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\pcdrv-net.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\r3000a.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
