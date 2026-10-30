@@ -1815,6 +1815,7 @@ void InterpretedCPU::Shutdown() {}
 template <bool debug, bool trace, bool detached>
 inline void InterpretedCPU::execBlock() {
     bool ranDelaySlot = false;
+    bool stackTripped = false;
     do {
         if (m_nextIsDelaySlot) {
             m_inDelaySlot = true;
@@ -1850,7 +1851,10 @@ inline void InterpretedCPU::execBlock() {
             const uint32_t sp = m_regs.GPR.n.sp;
             if (sp != m_stackBounds.lastSP) {
                 m_stackBounds.lastSP = sp;
-                if ((sp < m_stackBounds.low) || (sp > m_stackBounds.high)) stackBoundsViolation(pc, sp);
+                if ((sp < m_stackBounds.low) || (sp > m_stackBounds.high)) {
+                    stackBoundsViolation(pc, sp);
+                    stackTripped = true;
+                }
             }
         }
         if (m_gtePendingCount) gteTickWrites();
@@ -1888,6 +1892,9 @@ inline void InterpretedCPU::execBlock() {
            262113 instructions in one call - long past any cycle budget, and long past the
            exception that sent it there. */
         if constexpr (debug || detached) break;
+        // Stop on the offending instruction, as a breakpoint would: the paused cpu then sits right
+        // after it, and nothing further in the block can report again.
+        if (stackTripped) [[unlikely]] break;
     } while (!ranDelaySlot && !cop0Armed());
 }
 
