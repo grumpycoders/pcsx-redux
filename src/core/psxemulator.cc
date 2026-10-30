@@ -64,7 +64,11 @@ extern "C" int luaopen_lpeg(lua_State* L);
 struct PCSX::Emulator::RewindRing {
     // front() is the oldest snapshot, back() the most recent. Entries popped off the ring are
     // parked in m_spare and reused, so steady-state capture does not reallocate the messages.
-    std::deque<std::unique_ptr<SaveStates::SaveState>> m_states;
+    struct Entry {
+        std::unique_ptr<SaveStates::SaveState> state;
+        uint64_t cycle;
+    };
+    std::deque<Entry> m_states;
     std::vector<std::unique_ptr<SaveStates::SaveState>> m_spare;
 
     std::unique_ptr<SaveStates::SaveState> acquire() {
@@ -77,7 +81,7 @@ struct PCSX::Emulator::RewindRing {
     }
     void clear() {
         while (!m_states.empty()) {
-            m_spare.push_back(std::move(m_states.back()));
+            m_spare.push_back(std::move(m_states.back().state));
             m_states.pop_back();
         }
     }
@@ -287,15 +291,16 @@ void PCSX::Emulator::captureRewindState() {
     // A queued rewind is about to throw this state away, and would land on this very snapshot
     // rather than the one it was asked for.
     if (g_system->pendingRewinds()) return;
+    if (m_rewindCaptureSuppressed) return;
     auto& ring = *m_rewindRing;
     auto state = ring.acquire();
     SaveStates::capture(*state);
-    ring.m_states.push_back(std::move(state));
+    ring.m_states.push_back({std::move(state), m_cpu->m_regs.cycle});
     // Bound the ring. RewindCount == 0 means unbounded (use with care).
     const uint32_t count = settings.get<SettingRewindCount>().value;
     if (count > 0) {
         while (ring.m_states.size() > count) {
-            ring.m_spare.push_back(std::move(ring.m_states.front()));
+            ring.m_spare.push_back(std::move(ring.m_states.front().state));
             ring.m_states.pop_front();
         }
         // Never hold more messages than the ring can use, or lowering the count strands them.
@@ -320,14 +325,14 @@ bool PCSX::Emulator::rewindStateNow(unsigned steps) {
     if (ring.m_states.empty() || steps == 0) return false;
     // Each step consumes a snapshot, but only the one we land on needs restoring.
     while (--steps && ring.m_states.size() > 1) {
-        ring.m_spare.push_back(std::move(ring.m_states.back()));
+        ring.m_spare.push_back(std::move(ring.m_states.back().state));
         ring.m_states.pop_back();
     }
     // Step back to the most recent snapshot and consume it, so successive calls walk further
     // into the past. Take it off the ring first: restore() signals SaveStateLoaded, and a
     // listener that rewinds again has to step past this snapshot, not land on it a second time.
     // restore() invalidates the code cache itself, since it does not reset the cpu.
-    auto state = std::move(ring.m_states.back());
+    auto state = std::move(ring.m_states.back().state);
     ring.m_states.pop_back();
     SaveStates::restore(*state);
     ring.m_spare.push_back(std::move(state));
@@ -338,6 +343,24 @@ size_t PCSX::Emulator::rewindStateCount() const {
     const size_t size = m_rewindRing->m_states.size();
     const size_t pending = g_system->pendingRewinds();
     return size > pending ? size - pending : 0;
+}
+
+size_t PCSX::Emulator::rewindSnapshotCount() const { return m_rewindRing->m_states.size(); }
+
+uint64_t PCSX::Emulator::rewindSnapshotCycle(size_t index) const { return m_rewindRing->m_states[index].cycle; }
+
+void PCSX::Emulator::restoreRewindSnapshot(size_t index) {
+    // A capture queued before the restore asked for a state that no longer exists.
+    m_rewindCapturePending = false;
+    SaveStates::restore(*m_rewindRing->m_states[index].state);
+}
+
+void PCSX::Emulator::dropRewindSnapshotsAfter(uint64_t cycle) {
+    auto& ring = *m_rewindRing;
+    while (!ring.m_states.empty() && ring.m_states.back().cycle > cycle) {
+        ring.m_spare.push_back(std::move(ring.m_states.back().state));
+        ring.m_states.pop_back();
+    }
 }
 
 void PCSX::Emulator::setPGXPMode(uint32_t pgxpMode) { m_cpu->psxSetPGXPMode(pgxpMode); }

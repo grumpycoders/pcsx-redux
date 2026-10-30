@@ -77,6 +77,9 @@ TEST(LuaCompression, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.compressi
 TEST(LuaCompression, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.compression"), 0); }
 TEST(LuaRewind, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.rewind"), 0); }
 TEST(LuaRewind, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.rewind"), 0); }
+TEST(LuaGdbReverse, Interpreter) {
+    EXPECT_EQ(runLuaInt("-gdb", "-gdb-port", "3462", "-exec", "require 'tests.lua.gdb-reverse'"), 0);
+}
 TEST(LuaPCdrv, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.pcdrv"), 0); }
 TEST(LuaPCWrite, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.pcwrite"), 0); }
 TEST(LuaSaveStateBranchSlot, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.sstate-branchslot"), 0); }
