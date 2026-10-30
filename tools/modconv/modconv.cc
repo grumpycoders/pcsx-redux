@@ -104,7 +104,9 @@ The SPU loops on whole blocks of 28 samples, so by default loop lengths are
 rounded to the nearest block, which detunes the looped part of the sample.
 A stretched sample is instead resampled so that its loop is a whole number of
 blocks, and the notes playing it are transposed and its finetune adjusted to
-play it at the same pitch.
+play it at the same pitch. A sample that can't be stretched, because its notes
+would move past the period table, it would get too long, or stretching isn't
+closer than rounding, is rounded, and modconv says so.
 )",
                    argv[0]);
         return -1;
@@ -152,6 +154,10 @@ play it at the same pitch.
 
     std::vector<bool> stretchRequested(32, false);
     if (stretchList.has_value()) {
+        if (stretchList.value().empty()) {
+            fmt::print("--stretch needs a list of sample numbers, or \"all\".\n");
+            return -1;
+        }
         std::stringstream list(stretchList.value());
         std::string item;
         while (std::getline(list, item, ',')) {

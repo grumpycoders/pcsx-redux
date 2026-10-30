@@ -207,3 +207,74 @@ TEST(ModConvStretch, MapsAcrossTheSongWrap) {
     auto map = mapCells(p, channels, orders, 2);
     EXPECT_EQ(map.sample[5 * channels], 2);
 }
+
+namespace {
+
+std::vector<std::optional<Stretch>> stretchSample2() {
+    Stretch s;
+    s.loopLength = 182;
+    s.newLoopLength = 252;
+    s.semitones = 5;
+    s.finetune = 5;
+    s.oldFinetune = 0;
+    std::vector<std::optional<Stretch>> stretches(32);
+    stretches[2] = s;
+    return stretches;
+}
+
+}  // namespace
+
+// A cell first reached with an unstretched sample, then with a stretched one, is left alone and
+// reported for the stretched one.
+TEST(ModConvStretch, ReportsCellsFirstPlayedWithAnotherSample) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(3 * channels * 256, 0);
+    setCell(p, channels, 0, 0, 0, c_periodTable[12], 0, 0);        // pattern 0: note, no sample
+    setCell(p, channels, 64 + 0, 0, 1, c_periodTable[12], 0, 0);   // pattern 1: sample 1
+    setCell(p, channels, 64 + 1, 0, 0, 0, 0xd, 0x00);              // break
+    setCell(p, channels, 128 + 0, 0, 2, c_periodTable[12], 0, 0);  // pattern 2: sample 2
+    setCell(p, channels, 128 + 1, 0, 0, 0, 0xd, 0x00);             // break
+    const uint8_t orders[4] = {1, 0, 2, 0};
+    auto map = mapCells(p, channels, orders, 4);
+    ASSERT_EQ(map.sample[0], 1);
+    auto warnings = rewritePatterns(p, map, stretchSample2());
+    EXPECT_EQ(cellPeriod(p, channels, 0, 0), c_periodTable[12]);
+    ASSERT_EQ(warnings.size(), 1u);
+    EXPECT_EQ(warnings[0], "sample 2: 1 cells first played with another sample, left as they were");
+}
+
+// An arpeggio without a note plays from the channel's last note, transposed.
+TEST(ModConvStretch, ChecksArpeggiosWithoutANote) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(channels * 256, 0);
+    setCell(p, channels, 0, 0, 2, c_periodTable[28], 0, 0);
+    setCell(p, channels, 1, 0, 0, 0, 0x0, 0x07);  // 28 + 5 + 7 = 40, past the table
+    setCell(p, channels, 2, 0, 0, 0, 0x0, 0x01);  // 28 + 5 + 1 = 34, fine
+    const uint8_t orders[1] = {0};
+    auto map = mapCells(p, channels, orders, 1);
+    EXPECT_EQ(map.lastNote[1 * channels], 28);
+    auto warnings = rewritePatterns(p, map, stretchSample2());
+    ASSERT_EQ(warnings.size(), 1u);
+    EXPECT_EQ(warnings[0], "sample 2: 1 arpeggios reach past the period table");
+}
+
+// 300 on a stretched sample reuses a speed set with another sample: the compensated speed is written
+// in. 5xy has no speed to write, and is reported.
+TEST(ModConvStretch, CompensatesReusedPortamentoSpeed) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(channels * 256, 0);
+    const unsigned c2 = c_periodTable[12];
+    setCell(p, channels, 0, 0, 1, c2, 0x3, 0x10);  // speed 16, set with sample 1
+    setCell(p, channels, 1, 0, 2, c2, 0x3, 0x00);  // sample 2 slides at it
+    setCell(p, channels, 2, 0, 0, 0, 0x5, 0x01);   // and again, with a volume slide
+    setCell(p, channels, 3, 0, 0, c2, 0x3, 0x08);  // a speed set with sample 2
+    setCell(p, channels, 4, 0, 0, 0, 0x3, 0x00);   // reused on sample 2, already scaled
+    const uint8_t orders[1] = {0};
+    auto map = mapCells(p, channels, orders, 1);
+    auto warnings = rewritePatterns(p, map, stretchSample2());
+    EXPECT_EQ(cellParam(p, channels, 1, 0), 12);  // 16 / (252 / 182)
+    EXPECT_EQ(cellParam(p, channels, 3, 0), 6);   // 8 / (252 / 182)
+    EXPECT_EQ(cellParam(p, channels, 4, 0), 0);
+    ASSERT_EQ(warnings.size(), 1u);
+    EXPECT_EQ(warnings[0], "sample 2: 1 tone portamentos reuse a speed set with another sample, left as they were");
+}

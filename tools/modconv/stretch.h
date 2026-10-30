@@ -244,8 +244,18 @@ inline std::vector<int16_t> resampleLoop(const std::vector<int16_t>& source, uns
 // next pattern at its row. The walk ends when it reaches a position and row it has already been at
 // with the same samples current. Cells never reached stay at 0.
 struct CellMap {
-    std::vector<uint8_t> sample;  // per cell: 0 = not played, 1-31 = sample number
-    std::vector<bool> conflict;   // the cell is reached with two different samples
+    std::vector<uint8_t> sample;    // per cell: 0 = not played, 1-31 = sample number on the first visit
+    std::vector<bool> conflict;     // the cell is reached with two different samples
+    std::vector<uint32_t> samples;  // every sample the cell is reached with, bit n = sample n
+    // The channel's last note, as a finetune 0 note index, and the sample it was keyed with: what a
+    // cell without a period plays from. lastNote is -1 when unknown, -2 when it depends on the path.
+    std::vector<int8_t> lastNote;
+    std::vector<uint8_t> lastNoteSample;
+    // The channel's tone portamento speed (the last nonzero 3xx), and the sample current when it was
+    // set: what 300 and 5xy slide at. speedFrom is 0 when no speed was set, 0xff when it depends on
+    // the path.
+    std::vector<uint8_t> speed;
+    std::vector<uint8_t> speedFrom;
 };
 
 inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels, const uint8_t* orders,
@@ -254,7 +264,15 @@ inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels,
     CellMap map;
     map.sample.assign(patternCount * 64 * channels, 0);
     map.conflict.assign(map.sample.size(), false);
+    map.samples.assign(map.sample.size(), 0);
+    map.lastNote.assign(map.sample.size(), -1);
+    map.lastNoteSample.assign(map.sample.size(), 0);
+    map.speed.assign(map.sample.size(), 0);
+    map.speedFrom.assign(map.sample.size(), 0);
+    std::vector<bool> seen(map.sample.size(), false);
     std::vector<uint8_t> current(channels, 0);
+    std::vector<int> lastNote(channels, -1);
+    std::vector<uint8_t> lastNoteSample(channels, 0), speed(channels, 0), speedFrom(channels, 0);
     std::set<std::tuple<unsigned, unsigned, std::vector<uint8_t>>> visited;
     unsigned pos = 0, startRow = 0;
     while ((positions != 0) && visited.emplace(pos, startRow, current).second) {
@@ -273,9 +291,33 @@ inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels,
                     } else if (map.sample[cell] != current[ch]) {
                         map.conflict[cell] = true;
                     }
+                    map.samples[cell] |= 1u << current[ch];
+                }
+                const unsigned fx = c[2] & 0x0f;
+                const unsigned period = ((c[0] & 0x0f) << 8) | c[1];
+                if (period != 0) {
+                    lastNote[ch] = noteFromPeriod(period);
+                    lastNoteSample[ch] = current[ch];
+                }
+                if ((fx == 0x3) && (c[3] != 0)) {
+                    speed[ch] = c[3];
+                    speedFrom[ch] = current[ch];
+                }
+                if (!seen[cell]) {
+                    seen[cell] = true;
+                    map.lastNote[cell] = int8_t(lastNote[ch]);
+                    map.lastNoteSample[cell] = lastNoteSample[ch];
+                    map.speed[cell] = speed[ch];
+                    map.speedFrom[cell] = speedFrom[ch];
+                } else {
+                    if ((map.lastNote[cell] != lastNote[ch]) || (map.lastNoteSample[cell] != lastNoteSample[ch])) {
+                        map.lastNote[cell] = -2;
+                    }
+                    if ((map.speed[cell] != speed[ch]) || (map.speedFrom[cell] != speedFrom[ch])) {
+                        map.speedFrom[cell] = 0xff;
+                    }
                 }
                 // The first channel with each effect wins, as in the player.
-                const unsigned fx = c[2] & 0x0f;
                 if ((fx == 0xd) && !brk) {
                     brk = true;
                     breakRow = unsigned(c[3] >> 4) * 10 + (c[3] & 0x0f);
@@ -321,11 +363,17 @@ inline std::vector<std::vector<int>> notesPerSample(const std::vector<uint8_t>& 
 //   transposed notes have periods smaller by the stretch ratio, so they are divided by it;
 // - 9xx offsets are in sample bytes, so they are multiplied by it, clamped to ff;
 // - E5x sets the sample's finetune, so it gets the same finetune shift as the sample;
-// - arpeggios reaching past the table are reported: modplayer would read the next finetune's row.
+// - 300 slides at the channel's last 3xx speed: when that speed was set on another sample, the
+//   compensated speed is written in explicitly, and 5xy, which has no speed to write, is reported;
+// - arpeggios reaching past the table are reported, including on cells without a note, which play
+//   from the channel's last one: modplayer would read the next finetune's row;
+// - a cell reached with a stretched sample and another one can only be right for one of them, and is
+//   reported; it is rewritten for the sample it is first reached with.
 inline std::vector<std::string> rewritePatterns(std::vector<uint8_t>& patterns, const CellMap& map,
                                                 const std::vector<std::optional<Stretch>>& stretches) {
     std::vector<std::string> warnings;
-    std::vector<unsigned> clamped(32), unknown(32), conflicts(32), offsets(32), arpeggios(32), finetunes(32);
+    std::vector<unsigned> clamped(32), unknown(32), conflicts(32), skipped(32), offsets(32), arpeggios(32),
+        finetunes(32), slides(32);
     auto scaleDown = [](unsigned v, double ratio) -> unsigned {
         if (v == 0) return 0;
         return std::max(1u, unsigned(std::lround(v / ratio)));
@@ -348,9 +396,16 @@ inline std::vector<std::string> rewritePatterns(std::vector<uint8_t>& patterns, 
                 c[3] = 0x50 | finetuneToNibble(ft);
             }
         }
+        // Only a cell with a note or an effect can be wrong for one of its samples.
+        const bool shared = map.conflict[cell] && ((c[0] & 0x0f) || c[1] || (c[2] & 0x0f) || c[3]);
+        if (shared) {
+            for (unsigned i = 1; i <= 31; i++) {
+                if ((i != active) && (map.samples[cell] & (1u << i)) && stretches[i]) skipped[i]++;
+            }
+        }
         if (active == 0 || !stretches[active]) continue;
         const auto& s = *stretches[active];
-        if (map.conflict[cell]) conflicts[active]++;
+        if (shared) conflicts[active]++;
         const double ratio = s.ratio();
         const unsigned period = ((c[0] & 0x0f) << 8) | c[1];
         int moved = -1;
@@ -371,12 +426,32 @@ inline std::vector<std::string> rewritePatterns(std::vector<uint8_t>& patterns, 
         }
         switch (fx) {
             case 0x0:
-                if (c[3] != 0 && moved >= 0 && (moved + std::max(c[3] >> 4, c[3] & 0x0f)) > 35) arpeggios[active]++;
+                if (c[3] != 0) {
+                    int base = moved;
+                    if ((period == 0) && (map.lastNote[cell] >= 0)) {
+                        const unsigned from = map.lastNoteSample[cell];
+                        base = map.lastNote[cell] + ((from != 0 && stretches[from]) ? stretches[from]->semitones : 0);
+                        base = std::clamp(base, 0, c_maxNote);
+                    }
+                    if ((base >= 0) && ((base + std::max(c[3] >> 4, c[3] & 0x0f)) > 35)) arpeggios[active]++;
+                }
                 break;
+            case 0x3:
+                if ((c[3] == 0) && (map.speedFrom[cell] != active) && (map.speedFrom[cell] != 0)) {
+                    if (map.speedFrom[cell] == 0xff) {
+                        slides[active]++;
+                    } else {
+                        c[3] = std::min(255u, scaleDown(map.speed[cell], ratio));
+                    }
+                    break;
+                }
+                [[fallthrough]];
             case 0x1:
             case 0x2:
-            case 0x3:
                 c[3] = std::min(255u, scaleDown(c[3], ratio));
+                break;
+            case 0x5:
+                if ((map.speedFrom[cell] != active) && (map.speedFrom[cell] != 0)) slides[active]++;
                 break;
             case 0x4:
                 c[3] = (c[3] & 0xf0) | std::min(15u, scaleDown(c[3] & 0x0f, ratio));
@@ -409,6 +484,13 @@ inline std::vector<std::string> rewritePatterns(std::vector<uint8_t>& patterns, 
         if (conflicts[i])
             warnings.push_back(fmt::format(
                 "sample {}: {} cells also played with another sample, rewritten for this one", i, conflicts[i]));
+        if (skipped[i])
+            warnings.push_back(
+                fmt::format("sample {}: {} cells first played with another sample, left as they were", i, skipped[i]));
+        if (slides[i])
+            warnings.push_back(
+                fmt::format("sample {}: {} tone portamentos reuse a speed set with another sample, left as they were",
+                            i, slides[i]));
         if (offsets[i])
             warnings.push_back(fmt::format("sample {}: {} 9xx offsets past ff after scaling, clamped", i, offsets[i]));
         if (arpeggios[i])
