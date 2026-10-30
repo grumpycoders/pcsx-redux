@@ -273,9 +273,21 @@ inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels,
     std::vector<uint8_t> current(channels, 0);
     std::vector<int> lastNote(channels, -1);
     std::vector<uint8_t> lastNoteSample(channels, 0), speed(channels, 0), speedFrom(channels, 0);
+    // The walk stops on a position and row already reached with the same channel state: the current
+    // samples, and the last notes and slide speeds the cell map records.
+    auto channelState = [&]() {
+        std::vector<uint8_t> state(current);
+        for (unsigned ch = 0; ch < channels; ch++) {
+            state.push_back(uint8_t(lastNote[ch]));
+            state.push_back(lastNoteSample[ch]);
+            state.push_back(speed[ch]);
+            state.push_back(speedFrom[ch]);
+        }
+        return state;
+    };
     std::set<std::tuple<unsigned, unsigned, std::vector<uint8_t>>> visited;
     unsigned pos = 0, startRow = 0;
-    while ((positions != 0) && visited.emplace(pos, startRow, current).second) {
+    while ((positions != 0) && visited.emplace(pos, startRow, channelState()).second) {
         const unsigned pattern = orders[pos];
         bool jump = false, brk = false;
         unsigned jumpTo = 0, breakRow = 0;

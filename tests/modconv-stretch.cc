@@ -278,3 +278,22 @@ TEST(ModConvStretch, CompensatesReusedPortamentoSpeed) {
     ASSERT_EQ(warnings.size(), 1u);
     EXPECT_EQ(warnings[0], "sample 2: 1 tone portamentos reuse a speed set with another sample, left as they were");
 }
+
+// The same position reached twice with the same samples but different slide speeds: the walk has to
+// see both, so the 300 there is reported instead of being written for the first speed only.
+TEST(ModConvStretch, WalksAgainWithAnotherSlideSpeed) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(3 * channels * 256, 0);
+    setCell(p, channels, 0, 0, 0, 0, 0x3, 0x00);        // pattern 0: 300, no sample
+    setCell(p, channels, 64 + 0, 0, 1, 0, 0x3, 0x10);   // pattern 1: speed 16 with sample 1
+    setCell(p, channels, 64 + 1, 0, 2, 0, 0, 0);        // then sample 2
+    setCell(p, channels, 128 + 0, 0, 1, 0, 0x3, 0x20);  // pattern 2: speed 32 with sample 1
+    setCell(p, channels, 128 + 1, 0, 2, 0, 0xb, 0x01);  // then sample 2, back to position 1
+    const uint8_t orders[3] = {1, 0, 2};
+    auto map = mapCells(p, channels, orders, 3);
+    EXPECT_EQ(map.speedFrom[0], 0xff);
+    auto warnings = rewritePatterns(p, map, stretchSample2());
+    EXPECT_EQ(cellParam(p, channels, 0, 0), 0);
+    ASSERT_EQ(warnings.size(), 1u);
+    EXPECT_EQ(warnings[0], "sample 2: 1 tone portamentos reuse a speed set with another sample, left as they were");
+}
