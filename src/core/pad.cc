@@ -757,6 +757,7 @@ void PadsImpl::getTransferState(Port port, TransferState& state) {
     std::memcpy(state.buf, pad.m_buf, sizeof(state.buf));
     std::memcpy(state.motorMapping, pad.m_motorMapping, sizeof(state.motorMapping));
     state.configCommandsUsed = pad.m_configCommandsUsed;
+    state.oldMethodLatch = pad.m_oldMethodLatch;
 }
 
 void PadsImpl::setTransferState(Port port, const TransferState& state) {
@@ -770,6 +771,7 @@ void PadsImpl::setTransferState(Port port, const TransferState& state) {
     std::memcpy(pad.m_buf, state.buf, sizeof(pad.m_buf));
     std::memcpy(pad.m_motorMapping, state.motorMapping, sizeof(pad.m_motorMapping));
     pad.m_configCommandsUsed = state.configCommandsUsed;
+    pad.m_oldMethodLatch = state.oldMethodLatch;
 }
 
 void PadsImpl::Pad::reset() {

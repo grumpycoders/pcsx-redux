@@ -67,6 +67,7 @@ class Pads {
         uint8_t buf[256] = {};
         uint8_t motorMapping[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         bool configCommandsUsed = false;
+        uint8_t oldMethodLatch = 0;
     };
     virtual void getTransferState(Port port, TransferState& state) = 0;
     virtual void setTransferState(Port port, const TransferState& state) = 0;

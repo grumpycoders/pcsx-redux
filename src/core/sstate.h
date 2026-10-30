@@ -285,8 +285,9 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("current_byte"), 6> PadCurr
 typedef Protobuf::Field<Protobuf::FixedBytes<256>, TYPESTRING("buffer"), 7> PadBuffer;
 typedef Protobuf::Field<Protobuf::FixedBytes<6>, TYPESTRING("motor_mapping"), 8> PadMotorMapping;
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("config_commands_used"), 9> PadConfigCommandsUsed;
+typedef Protobuf::Field<Protobuf::UInt8, TYPESTRING("old_method_latch"), 10> PadOldMethodLatch;
 typedef Protobuf::Message<TYPESTRING("PadTransfer"), PadPresent, PadCmd, PadConfigMode, PadAnalogMode, PadBufferLen,
-                          PadCurrentByte, PadBuffer, PadMotorMapping, PadConfigCommandsUsed>
+                          PadCurrentByte, PadBuffer, PadMotorMapping, PadConfigCommandsUsed, PadOldMethodLatch>
     PadTransfer;
 typedef Protobuf::MessageField<PadTransfer, TYPESTRING("pad1"), 81> SIOPad1;
 typedef Protobuf::MessageField<PadTransfer, TYPESTRING("pad2"), 82> SIOPad2;

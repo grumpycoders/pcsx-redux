@@ -50,6 +50,7 @@ void serializePad(PCSX::SaveStates::PadTransfer& dst, PCSX::Pads::Port port) {
     dst.get<PadBuffer>().copyFrom(pad.buf);
     dst.get<PadMotorMapping>().copyFrom(pad.motorMapping);
     dst.get<PadConfigCommandsUsed>().value = pad.configCommandsUsed;
+    dst.get<PadOldMethodLatch>().value = pad.oldMethodLatch;
 }
 
 // A state from before the pads were serialised has no pad message at all, and the pads then keep
@@ -66,6 +67,7 @@ void deserializePad(const PCSX::SaveStates::PadTransfer& src, PCSX::Pads::Port p
     src.get<PadBuffer>().copyTo(pad.buf);
     src.get<PadMotorMapping>().copyTo(pad.motorMapping);
     pad.configCommandsUsed = src.get<PadConfigCommandsUsed>().value;
+    pad.oldMethodLatch = src.get<PadOldMethodLatch>().value;
     PCSX::g_emulator->m_pads->setTransferState(port, pad);
 }
 
