@@ -203,6 +203,11 @@ PadSaveStateListener = PCSX.Events.createEventListener('GPU::Vsync', function()
         PCSX.loadSaveState(toSlice(stripPads(mid)))
     elseif frames == 44 then
         local after = tostring(PCSX.createSaveState())
+        if padField(disturbed, 5) == 0 then
+            print('no pad1 message found in the saved state')
+            PCSX.quit(4)
+            return
+        end
         for _, num in ipairs({ 2, 3, 4, 5, 6, 8, 9 }) do
             if padField(after, num) ~= padField(disturbed, num) then
                 print('a state without pad messages changed the pad: field ' .. num)
