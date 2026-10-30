@@ -263,7 +263,10 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
     if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
 
-    if (isSymbolsFont) {
+    // Built once per reload: fonts loaded at earlier scales keep pointing at this block, so it must not grow.
+    if (isSymbolsFont && !m_baseFontRanges.empty()) {
+        ranges = m_baseFontRanges.data();
+    } else if (isSymbolsFont) {
         for (unsigned i = 0; ranges[i] != 0; i++) {
             m_baseFontRanges.push_back(ranges[i]);
         }
@@ -1115,6 +1118,9 @@ void PCSX::GUI::startFrame() {
                                      io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true, true);
             m_monoFonts[scale] = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale,
                                           io, nullptr, false, false);
+            // NotoMono has no U+2713 (cester's pass mark) and no CJK; merge them in from the japanese font.
+            loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MonoFontSize>().value * scale, io,
+                     reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true, false);
         }
         // Pick the font matching the current DPI scale as the default; in
         // v1.92 ImGui draws frames at Style.FontSizeBase unless overridden by
