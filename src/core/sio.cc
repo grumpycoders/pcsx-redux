@@ -430,6 +430,8 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
     if (portSwitched && !portChanged && m_memoryCard[oldPort].getPocketstation()) m_memoryCard[oldPort].deselect();
 
     if (selected || portSwitched) {
+        // Card image edits made since the last release reach the device before it answers.
+        syncPocketstationFlash();
         // /SEL is shared by the pad and the card of a port; a PocketStation sees every select.
         m_memoryCard[(value & ControlFlags::WHICH_PORT) ? 1 : 0].selectPocketstation();
     }
