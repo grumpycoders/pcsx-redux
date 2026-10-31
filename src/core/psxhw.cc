@@ -91,6 +91,10 @@ uint8_t PCSX::HW::read8(uint32_t add) {
             hard = g_emulator->m_sio1->readCtrl8();
             SIO1_LOG("SIO1.CTRL read8 %x; ret = %x\n", add & 0xf, hard);
             break;
+        case 0x1f80105c:  // guizmo register
+            hard = g_emulator->m_sio1->readGuizmo8();
+            SIO1_LOG("SIO1.GUIZMO read8 %x; ret = %x\n", add & 0xf, hard);
+            break;
         case 0x1f80105e:  // baudrate register
             hard = g_emulator->m_sio1->readBaud8();
             SIO1_LOG("SIO1.BAUD read8 %x; ret = %x\n", add & 0xf, hard);
@@ -187,6 +191,10 @@ uint16_t PCSX::HW::read16(uint32_t add) {
         case 0x1f80105a:  // control register
             hard = g_emulator->m_sio1->readCtrl16();
             SIO1_LOG("SIO1.CTRL read16 %x; ret = %x\n", add & 0xf, hard);
+            break;
+        case 0x1f80105c:  // guizmo register
+            hard = g_emulator->m_sio1->readGuizmo16();
+            SIO1_LOG("SIO1.GUIZMO read16 %x; ret = %x\n", add & 0xf, hard);
             break;
         case 0x1f80105e:  // baudrate register
             hard = g_emulator->m_sio1->readBaud16();
@@ -290,6 +298,10 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             hard = g_emulator->m_sio1->readStat32();
             // Log command below is overly spammy
             // SIO1_LOG("SIO1.STAT read32 ;ret = %x\n", hard);
+            break;
+        case 0x1f80105c:  // guizmo register
+            hard = g_emulator->m_sio1->readGuizmo32();
+            SIO1_LOG("SIO1.GUIZMO read32 %x; ret = %x\n", add & 0xf, hard);
             break;
         case 0x1f801060: {
             hard = g_emulator->m_mem->readHardwareRegister<0x1060>();
@@ -433,8 +445,20 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             g_emulator->m_sio1->writeCtrl8(value);
             SIO1_LOG("SIO1.CTRL write8 %x; ret = %x\n", add & 0xf, value);
             break;
+        case 0x1f80105c:  // guizmo register
+            g_emulator->m_sio1->writeGuizmo(rawvalue);
+            SIO1_LOG("SIO1.GUIZMO write8 %x; ret = %x\n", add & 0xf, rawvalue);
+            break;
+        case 0x1f80105d:  // guizmo register again
+            g_emulator->m_sio1->writeGuizmo(((uint16_t)value) << 8);
+            SIO1_LOG("SIO1.GUIZMO write8 %x; ret = %x\n", add & 0xf, value);
+            break;
         case 0x1f80105e:  // baudrate register
-            g_emulator->m_sio1->writeBaud8(value);
+            g_emulator->m_sio1->writeBaud16(rawvalue);
+            SIO1_LOG("SIO1.Baud write8 %x; ret = %x\n", add & 0xf, rawvalue);
+            break;
+        case 0x1f80105f:  // baudrate register, upper 8 bits
+            g_emulator->m_sio1->writeBaud16(((uint16_t)value) << 8);
             SIO1_LOG("SIO1.Baud write8 %x; ret = %x\n", add & 0xf, value);
             break;
         case 0x1f801800:
@@ -549,6 +573,10 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
         case 0x1f80105a:  // control register
             g_emulator->m_sio1->writeCtrl16(value);
             SIO1_LOG("SIO1.CTRL write16 %x, %x\n", add & 0xf, value);
+            break;
+        case 0x1f80105c:  // guizo register
+            g_emulator->m_sio1->writeGuizmo(value);
+            SIO1_LOG("SIO1.GUIZMO write16 %x, %x\n", add & 0xf, value);
             break;
         case 0x1f80105e:  // baudrate register
             g_emulator->m_sio1->writeBaud16(value);
@@ -671,6 +699,10 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         case 0x1f801054:
             g_emulator->m_sio1->writeStat32(value);
             SIO1_LOG("SIO1.STAT write32 %x\n", value);
+            break;
+        case 0x1f80105c:  // guizmo register
+            g_emulator->m_sio1->writeGuizmo(value);
+            SIO1_LOG("SIO1.GUIZMO write32 %x\n", value);
             break;
         case 0x1f801060:
             PSXHW_LOG("RAM size write %x\n", value);
