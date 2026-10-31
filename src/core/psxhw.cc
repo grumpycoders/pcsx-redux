@@ -448,19 +448,19 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
         case 0x1f80105c:  // guizmo register
             g_emulator->m_sio1->writeGuizmo(rawvalue);
             SIO1_LOG("SIO1.GUIZMO write8 %x; ret = %x\n", add & 0xf, rawvalue);
-            break;
+            return;
         case 0x1f80105d:  // guizmo register again
             g_emulator->m_sio1->writeGuizmo(((uint16_t)value) << 8);
             SIO1_LOG("SIO1.GUIZMO write8 %x; ret = %x\n", add & 0xf, value);
-            break;
+            return;
         case 0x1f80105e:  // baudrate register
             g_emulator->m_sio1->writeBaud16(rawvalue);
             SIO1_LOG("SIO1.Baud write8 %x; ret = %x\n", add & 0xf, rawvalue);
-            break;
+            return;
         case 0x1f80105f:  // baudrate register, upper 8 bits
             g_emulator->m_sio1->writeBaud16(((uint16_t)value) << 8);
             SIO1_LOG("SIO1.Baud write8 %x; ret = %x\n", add & 0xf, value);
-            break;
+            return;
         case 0x1f801800:
             g_emulator->m_cdrom->write0(value);
             break;
@@ -577,11 +577,11 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
         case 0x1f80105c:  // guizo register
             g_emulator->m_sio1->writeGuizmo(value);
             SIO1_LOG("SIO1.GUIZMO write16 %x, %x\n", add & 0xf, value);
-            break;
+            return;
         case 0x1f80105e:  // baudrate register
             g_emulator->m_sio1->writeBaud16(value);
             SIO1_LOG("SIO1.BAUD write16 %x, %x\n", add & 0xf, value);
-            break;
+            return;
         case 0x1f801070:
             PSXHW_LOG("ISTAT 16bit(actually 32bit) write %x\n", rawvalue);
             if (g_emulator->settings.get<Emulator::SettingSpuIrq>()) g_emulator->m_mem->setIRQ(0x200);
@@ -703,7 +703,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         case 0x1f80105c:  // guizmo register
             g_emulator->m_sio1->writeGuizmo(value);
             SIO1_LOG("SIO1.GUIZMO write32 %x\n", value);
-            break;
+            return;
         case 0x1f801060:
             PSXHW_LOG("RAM size write %x\n", value);
             g_emulator->m_mem->writeHardwareRegister<0x1060>(value);
