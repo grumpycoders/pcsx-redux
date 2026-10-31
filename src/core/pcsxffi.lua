@@ -121,6 +121,13 @@ void setGPUDumpPlayerLogging(bool enabled);
 uint32_t getGPUDumpPlayerLoggedCount();
 LuaSlice* getGPUDumpPlayerVRAM();
 LuaSlice* getVRAM();
+void setSPULoggerEnabled(bool);
+bool isSPULoggerEnabled();
+void clearSPULogger();
+uint64_t getSPULoggerEventCount();
+bool prepareSPULoggerSPD(uint32_t tickRate, bool fullRam);
+bool writeSPULoggerSPD(LuaFile*);
+const char* getSPULoggerExportError();
 
 LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
@@ -295,6 +302,29 @@ PCSX = {
             f()
         end
     end,
+    SPU = {
+        Logger = {
+            enable = function() C.setSPULoggerEnabled(true) end,
+            disable = function() C.setSPULoggerEnabled(false) end,
+            isEnabled = function() return C.isSPULoggerEnabled() end,
+            clear = function() C.clearSPULogger() end,
+            getEventCount = function() return tonumber(C.getSPULoggerEventCount()) end,
+            -- Writes the captured register stream as an SPU dump. tickRate is 16.16 Hz and
+            -- defaults to 1/16th of the hblank rate. Returns true, or false and the reason.
+            exportSPD = function(file, tickRate, fullRam)
+                local isName = type(file) == 'string'
+                if not isName and (type(file) ~= 'table' or file._type ~= 'File') then
+                    error('exportSPD: requires a File or a filename')
+                end
+                if not C.prepareSPULoggerSPD(tickRate or 0, fullRam and true or false) then
+                    return false, ffi.string(C.getSPULoggerExportError())
+                end
+                if isName then file = Support.File.open(file, 'TRUNCATE') end
+                if C.writeSPULoggerSPD(file._wrapper) then return true end
+                return false, ffi.string(C.getSPULoggerExportError())
+            end,
+        },
+    },
     GPU = {
         takeScreenShot = function()
             local ss = C.takeScreenShot()
