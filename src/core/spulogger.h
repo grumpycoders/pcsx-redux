@@ -82,7 +82,11 @@ class SPULogger {
     // Called by the SPU before it applies a register write, so the first write after a clear
     // can snapshot the register file it is about to change.
     void logRegWrite(uint32_t reg, uint16_t value, const uint16_t *registers) {
-        if (!m_enabled) return;
+        if (!m_enabled) {
+            // A register write missed while paused breaks the replay; anything else does not.
+            if (m_baselineValid) m_gap = true;
+            return;
+        }
         if (!m_baselineValid) captureBaseline(registers);
         logInternal(Kind::RegWrite, reg, 0, value, c_noVoice);
     }

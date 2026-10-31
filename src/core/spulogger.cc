@@ -57,10 +57,7 @@ void PCSX::SPULogger::clear() {
     m_gap = false;
 }
 
-void PCSX::SPULogger::setEnabled(bool enabled) {
-    if (enabled && !m_enabled && m_seen != 0) m_gap = true;
-    m_enabled = enabled;
-}
+void PCSX::SPULogger::setEnabled(bool enabled) { m_enabled = enabled; }
 
 void PCSX::SPULogger::captureBaseline(const uint16_t *registers) {
     std::copy(registers, registers + m_baseline.size(), m_baseline.begin());
@@ -83,7 +80,12 @@ std::string PCSX::SPULogger::exportSPD(std::vector<uint8_t> &out, SPD::Options o
         options.tickRate = ((pal ? SPD::c_palHblanks : SPD::c_ntscHblanks) << 16) / 16;
     }
     options.clock = Emulator::m_psxClockSpeed;
-    auto result = SPD::writeCapture(m_baseline, writes, g_emulator->m_spu->getSpuRam(), options);
+    // Sound RAM is written from the mixer thread too; take a consistent copy.
+    std::vector<uint8_t> ram(SPD::c_spuRamSize);
+    g_emulator->m_spu->lockSPURAM();
+    std::copy_n(g_emulator->m_spu->getSpuRam(), ram.size(), ram.begin());
+    g_emulator->m_spu->unlockSPURAM();
+    auto result = SPD::writeCapture(m_baseline, writes, ram.data(), options);
     if (!result.error.empty()) return result.error;
     out = std::move(result.data);
     return {};

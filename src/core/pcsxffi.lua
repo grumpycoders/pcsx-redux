@@ -125,7 +125,8 @@ void setSPULoggerEnabled(bool);
 bool isSPULoggerEnabled();
 void clearSPULogger();
 uint64_t getSPULoggerEventCount();
-bool exportSPULoggerSPD(LuaFile*, uint32_t tickRate, bool fullRam);
+bool prepareSPULoggerSPD(uint32_t tickRate, bool fullRam);
+bool writeSPULoggerSPD(LuaFile*);
 const char* getSPULoggerExportError();
 
 LuaSlice* createSaveState();
@@ -311,11 +312,15 @@ PCSX = {
             -- Writes the captured register stream as an SPU dump. tickRate is 16.16 Hz and
             -- defaults to 1/16th of the hblank rate. Returns true, or false and the reason.
             exportSPD = function(file, tickRate, fullRam)
-                if type(file) == 'string' then file = Support.File.open(file, 'TRUNCATE') end
-                if type(file) ~= 'table' or file._type ~= 'File' then
+                local isName = type(file) == 'string'
+                if not isName and (type(file) ~= 'table' or file._type ~= 'File') then
                     error('exportSPD: requires a File or a filename')
                 end
-                if C.exportSPULoggerSPD(file._wrapper, tickRate or 0, fullRam and true or false) then return true end
+                if not C.prepareSPULoggerSPD(tickRate or 0, fullRam and true or false) then
+                    return false, ffi.string(C.getSPULoggerExportError())
+                end
+                if isName then file = Support.File.open(file, 'TRUNCATE') end
+                if C.writeSPULoggerSPD(file._wrapper) then return true end
                 return false, ffi.string(C.getSPULoggerExportError())
             end,
         },

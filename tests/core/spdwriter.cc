@@ -259,6 +259,25 @@ TEST(SPDWriter, SampleDataCoversKeyedVoicesOnly) {
     EXPECT_EQ(0, memcmp(bytes.data(), f.ram.data() + 0x2000, bytes.size()));
 }
 
+TEST(SPDWriter, SampleDataCoversRepeatAddresses) {
+    Fixture f;
+    f.sample(0x2000, 4);  // voice 1 start
+    f.sample(0x6000, 2);  // voice 1 repeat, set before the key on
+    f.sample(0x9000, 2);  // voice 1 repeat, rewritten while it plays
+    f.sample(0xc000, 2);  // voice 2 repeat, never keyed
+    f.baseline[(1 * 0x10 + 6) / 2] = 0x2000 >> 3;
+    f.baseline[(1 * 0x10 + 0xe) / 2] = 0x6000 >> 3;
+    f.baseline[(2 * 0x10 + 0xe) / 2] = 0xc000 >> 3;
+    auto result = f.write({
+        {0, 0x188, 1 << 1},
+        {10, 0x01e, 0x9000 >> 3},
+        {20, 0x02e, 0xc000 >> 3},
+    });
+    ASSERT_TRUE(result.error.empty());
+    EXPECT_EQ(result.sampleBase, 0x2000u);
+    EXPECT_EQ(result.sampleSize, 0x9020u - 0x2000u);
+}
+
 TEST(SPDWriter, NoKeyOnsMeansNoSampleData) {
     Fixture f;
     f.sample(0x2000, 4);

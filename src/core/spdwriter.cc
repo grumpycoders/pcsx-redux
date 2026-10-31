@@ -116,20 +116,26 @@ struct Span {
     uint32_t hi = 0;
 };
 
-// Widens span to cover the sample each voice in mask starts from, out to that sample's end flag.
+// Widens span to cover the sample at addr, out to that sample's end flag.
+void addSample(Span& span, uint32_t addr, const uint8_t* spuRam) {
+    if (addr < c_captureBuffers) return;
+    span.lo = std::min(span.lo, addr & ~0xfu);
+    span.hi = std::max(span.hi, sampleEnd(spuRam, addr));
+}
+
+// Each voice in mask plays from its start address and can jump to its repeat address.
 void addKeyedSamples(Span& span, const std::array<uint16_t, 0x100>& regs, uint32_t mask, unsigned first,
-                     const uint8_t* spuRam) {
+                     uint32_t& keyed, const uint8_t* spuRam) {
     for (unsigned i = 0; i < 16; i++) {
         unsigned voice = first + i;
         if (!(mask & (1u << i)) || voice >= 24) continue;
-        uint32_t start = uint32_t(regs[(voice * 0x10 + 6) / 2]) << 3;
-        if (start < c_captureBuffers) continue;
-        span.lo = std::min(span.lo, start & ~0xfu);
-        span.hi = std::max(span.hi, sampleEnd(spuRam, start));
+        keyed |= 1u << voice;
+        addSample(span, uint32_t(regs[(voice * 0x10 + 6) / 2]) << 3, spuRam);
+        addSample(span, uint32_t(regs[(voice * 0x10 + 0xe) / 2]) << 3, spuRam);
     }
 }
 
-// The sample span: everything any keyed voice starts from, out to that sample's end flag.
+// The sample span: every sample a keyed voice starts from or repeats to, out to its end flag.
 // Voices never keyed during the capture point at whatever the game left there, and walking
 // those would drag arbitrary RAM into the file.
 Span sampleSpan(std::span<const uint16_t, 0x100> baseline, std::span<const PCSX::SPD::RegWrite> writes,
@@ -138,11 +144,16 @@ Span sampleSpan(std::span<const uint16_t, 0x100> baseline, std::span<const PCSX:
     if (fullRam) return {c_captureBuffers, PCSX::SPD::c_spuRamSize};
     std::array<uint16_t, 0x100> regs;
     std::copy(baseline.begin(), baseline.end(), regs.begin());
+    uint32_t keyed = 0;
     for (auto& w : writes) {
         if (w.reg >= 0x200) continue;
         regs[w.reg / 2] = w.value;
-        if (w.reg == c_keyOnLo) addKeyedSamples(span, regs, w.value, 0, spuRam);
-        if (w.reg == c_keyOnHi) addKeyedSamples(span, regs, w.value, 16, spuRam);
+        if (w.reg == c_keyOnLo) addKeyedSamples(span, regs, w.value, 0, keyed, spuRam);
+        if (w.reg == c_keyOnHi) addKeyedSamples(span, regs, w.value, 16, keyed, spuRam);
+        // A repeat address written while the voice plays is where it jumps at the next loop end.
+        if (w.reg < 0x180 && (w.reg & 0xf) == 0xe && (keyed & (1u << (w.reg / 0x10)))) {
+            addSample(span, uint32_t(w.value) << 3, spuRam);
+        }
     }
     return span;
 }

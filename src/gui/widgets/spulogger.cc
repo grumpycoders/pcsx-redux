@@ -153,7 +153,10 @@ void PCSX::Widgets::SPULogger::drawExportDialog(PCSX::SPULogger *logger) {
         m_exportStatus = _("Unable to create the SPD file.");
         return;
     }
-    file->write(data.data(), data.size());
+    if (file->write(data.data(), data.size()) != static_cast<ssize_t>(data.size())) {
+        m_exportStatus = _("Unable to write the whole SPD file.");
+        return;
+    }
     m_exportStatus = fmt::format(f_("Exported {} bytes."), data.size());
 }
 

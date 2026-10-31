@@ -219,15 +219,22 @@ bool isSPULoggerEnabled() { return PCSX::g_emulator->m_spuLogger->enabled(); }
 void clearSPULogger() { PCSX::g_emulator->m_spuLogger->clear(); }
 uint64_t getSPULoggerEventCount() { return PCSX::g_emulator->m_spuLogger->size(); }
 static std::string s_spuLoggerExportError;
-bool exportSPULoggerSPD(PCSX::LuaFFI::LuaFile* file, uint32_t tickRate, bool fullRam) {
+static std::vector<uint8_t> s_spuLoggerExport;
+// Two steps, so a filename is only opened, and truncated, once the capture is known to export.
+bool prepareSPULoggerSPD(uint32_t tickRate, bool fullRam) {
     PCSX::SPD::Options options;
     options.tickRate = tickRate;
     options.fullRam = fullRam;
-    std::vector<uint8_t> data;
-    s_spuLoggerExportError = PCSX::g_emulator->m_spuLogger->exportSPD(data, options);
-    if (!s_spuLoggerExportError.empty()) return false;
-    file->file->write(data.data(), data.size());
-    return true;
+    s_spuLoggerExport.clear();
+    s_spuLoggerExportError = PCSX::g_emulator->m_spuLogger->exportSPD(s_spuLoggerExport, options);
+    return s_spuLoggerExportError.empty();
+}
+bool writeSPULoggerSPD(PCSX::LuaFFI::LuaFile* file) {
+    auto size = static_cast<ssize_t>(s_spuLoggerExport.size());
+    bool ok = file->file->write(s_spuLoggerExport.data(), s_spuLoggerExport.size()) == size;
+    if (!ok) s_spuLoggerExportError = "failed to write the whole SPD file";
+    s_spuLoggerExport.clear();
+    return ok;
 }
 const char* getSPULoggerExportError() { return s_spuLoggerExportError.c_str(); }
 
@@ -333,7 +340,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, isSPULoggerEnabled);
     REGISTER(L, clearSPULogger);
     REGISTER(L, getSPULoggerEventCount);
-    REGISTER(L, exportSPULoggerSPD);
+    REGISTER(L, prepareSPULoggerSPD);
+    REGISTER(L, writeSPULoggerSPD);
     REGISTER(L, getSPULoggerExportError);
     REGISTER(L, stopGPUDump);
     REGISTER(L, isGPUDumpArmed);
