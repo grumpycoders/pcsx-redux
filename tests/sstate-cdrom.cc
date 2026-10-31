@@ -74,6 +74,8 @@ struct State {
     Queue responsefifo1;
     int32_t xaleft[2] = {};
     int32_t xaright[2] = {};
+    bool sectorreadsinceseek = false;
+    bool scexcountersreset = false;
 };
 
 CDRom bind(State& s) {
@@ -127,6 +129,8 @@ CDRom bind(State& s) {
         CDResponseFifo1{CDQueueElement{CDQueuePayload{s.responsefifo1.payload}, CDQueueValue{s.responsefifo1.value}, CDQueueValueRead{s.responsefifo1.valueRead}, CDQueueHasValue{s.responsefifo1.hasValue}, CDQueueHitMax{s.responsefifo1.hitMax}, CDQueuePayloadSize{s.responsefifo1.payloadSize}, CDQueuePayloadIndex{s.responsefifo1.payloadIndex}}},
         CDXALeft{CDADPCM{CDADPCMY0{s.xaleft[0]}, CDADPCMY1{s.xaleft[1]}}},
         CDXARight{CDADPCM{CDADPCMY0{s.xaright[0]}, CDADPCMY1{s.xaright[1]}}},
+        CDSectorReadSinceSeek{s.sectorreadsinceseek},
+        CDScexCountersReset{s.scexcountersreset},
     };
 }
 
@@ -207,6 +211,8 @@ void fill(State& s) {
     s.xaleft[1] = -340517;
     s.xaright[0] = -348436;
     s.xaright[1] = -356355;
+    s.sectorreadsinceseek = true;
+    s.scexcountersreset = true;
 }
 
 }  // namespace
@@ -298,4 +304,6 @@ TEST(SaveStateCDRom, EveryFieldRoundTrips) {
     EXPECT_EQ(out.xaleft[1], in.xaleft[1]) << "xaleft[1]";
     EXPECT_EQ(out.xaright[0], in.xaright[0]) << "xaright[0]";
     EXPECT_EQ(out.xaright[1], in.xaright[1]) << "xaright[1]";
+    EXPECT_EQ(out.sectorreadsinceseek, in.sectorreadsinceseek) << "sectorreadsinceseek";
+    EXPECT_EQ(out.scexcountersreset, in.scexcountersreset) << "scexcountersreset";
 }

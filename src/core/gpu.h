@@ -98,7 +98,11 @@ class GPU {
     }
 
     uint32_t readStatus();
-    void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    // GPUSTAT as the CPU reads it from 1F801814h: readStatus() plus the bits that follow the
+    // beam position.
+    uint32_t readStatusFromBus();
+    // Returns true when the transfer stopped part way, with MADR and BCR already set.
+    bool dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
 
     // 2MB VRAM addressing. Two independent axes decide how an access resolves:
@@ -143,6 +147,10 @@ class GPU {
     bool isIdle() const { return m_processor == &m_defaultProcessor; }
     // The last word written for a given GP1 command.
     uint32_t getStatusControl(uint8_t cmd) const { return m_statusControl[cmd]; }
+    // The last GP0(E3h), GP0(E4h) and GP0(E5h) words, low 24 bits.
+    uint32_t getDrawingStartRaw() const { return m_drawingStartRaw; }
+    uint32_t getDrawingEndRaw() const { return m_drawingEndRaw; }
+    uint32_t getDrawingOffsetRaw() const { return m_drawingOffsetRaw; }
     // Words that bring a freshly reset GPU to the current state, VRAM excluded.
     void getRestoreSequence(std::vector<uint32_t> &gp0, std::vector<uint32_t> &gp1) const;
 
@@ -179,6 +187,9 @@ class GPU {
     virtual void restoreStatus(uint32_t status) = 0;
 
     virtual void vblank(bool fromGui = false) = 0;
+    // Draws the current display into the GUI's offscreen target without stepping any
+    // emulated state, unlike vblank(). The GUI flips afterwards.
+    virtual void presentFromGui() = 0;
     virtual void addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {
         throw std::runtime_error("Not yet implemented");
     }
@@ -193,6 +204,7 @@ class GPU {
         m_irq1Flag = false;
         drainRenderer();
         m_vram2MBGateOpen = false;
+        m_dmaDirection = 0;
         vramConfigChanged();
         m_dataRet = 0;
         m_readFifo->reset();
@@ -275,6 +287,13 @@ class GPU {
       protected:
         static bool isInsideTriangle(int x, int y, int x1, int y1, int x2, int y2, int x3, int y3);
         static bool isInsideLine(int x, int y, int x1, int y1, int x2, int y2);
+        // The pixel address wraps modulo 2048 on both axes, and vertex plus offset sums range over
+        // -2048..2046, so VRAM pixel x, y is also reached by a primitive covering x - 2048 or y - 2048.
+        template <typename Test>
+        static bool isInsideWrapped(unsigned x, unsigned y, Test &&test) {
+            const int ix = int(x), iy = int(y);
+            return test(ix, iy) || test(ix - 2048, iy) || test(ix, iy - 2048) || test(ix - 2048, iy - 2048);
+        }
     };
 
   private:
@@ -642,15 +661,17 @@ class GPU {
             m_count = 0;
         }
         bool isInside(unsigned x, unsigned y) override {
-            if constexpr (shape == Shape::Tri) {
-                return isInsideTriangle(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[1] + offset.x,
-                                        this->y[1] + offset.y, this->x[2] + offset.x, this->y[2] + offset.y);
-            } else {
-                return isInsideTriangle(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[1] + offset.x,
-                                        this->y[1] + offset.y, this->x[2] + offset.x, this->y[2] + offset.y) ||
-                       isInsideTriangle(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[2] + offset.x,
-                                        this->y[2] + offset.y, this->x[3] + offset.x, this->y[3] + offset.y);
-            }
+            return isInsideWrapped(x, y, [this](int x, int y) {
+                if (isInsideTriangle(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[1] + offset.x,
+                                     this->y[1] + offset.y, this->x[2] + offset.x, this->y[2] + offset.y)) {
+                    return true;
+                }
+                if constexpr (shape == Shape::Quad) {
+                    return isInsideTriangle(x, y, this->x[1] + offset.x, this->y[1] + offset.y, this->x[2] + offset.x,
+                                            this->y[2] + offset.y, this->x[3] + offset.x, this->y[3] + offset.y);
+                }
+                return false;
+            });
         }
         uint32_t colors[count];
         int x[count], y[count];
@@ -715,18 +736,15 @@ class GPU {
             }
         }
         bool isInside(unsigned x, unsigned y) override {
-            if constexpr (lineType == LineType::Simple) {
-                return isInsideLine(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[1] + offset.x,
-                                    this->y[1] + offset.y);
-            } else {
-                for (unsigned i = 0; i < this->x.size(); i++) {
-                    if (isInsideLine(x, y, this->x[i] + offset.x, this->y[i] + offset.y,
-                                     this->x[(i + 1) % this->x.size()] + offset.x,
-                                     this->y[(i + 1) % this->y.size()] + offset.y))
+            return isInsideWrapped(x, y, [this](int x, int y) {
+                for (unsigned i = 1; i < this->x.size(); i++) {
+                    if (isInsideLine(x, y, this->x[i - 1] + offset.x, this->y[i - 1] + offset.y,
+                                     this->x[i] + offset.x, this->y[i] + offset.y)) {
                         return true;
+                    }
                 }
                 return false;
-            }
+            });
         }
 
         template <typename T>
@@ -756,8 +774,10 @@ class GPU {
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COLOR; }
         bool isInside(unsigned x, unsigned y) override {
-            return (x >= (this->x + offset.x)) && (y >= (this->y + offset.y)) && (x < (this->x + offset.x) + this->w) &&
-                   (y < (this->y + offset.y) + this->h);
+            return isInsideWrapped(x, y, [this](int x, int y) {
+                const int left = this->x + offset.x, top = this->y + offset.y;
+                return (x >= left) && (y >= top) && (x < left + this->w) && (y < top + this->h);
+            });
         }
 
         int x, y, w, h;
@@ -985,6 +1005,10 @@ class GPU {
     uint32_t m_drawingEndRaw = 0;
     uint32_t m_drawingOffsetRaw = 0;
     bool m_vram2MBGateOpen = false;  // GP1(09h).0: 1 opens the upper 1MB bank
+    uint32_t m_dmaDirection = 0;     // GP1(04h).0-1
+
+    // GPUSTAT.28 with GP1(04h)=2: low while a polygon or line command is partially received.
+    bool dmaBlockRequestLow() const;
 
     virtual void write0(ClearCache *) = 0;
     virtual void write0(FastFill *) = 0;

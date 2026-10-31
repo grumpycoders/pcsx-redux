@@ -61,24 +61,21 @@ int16_t PCSX::SPU::impl::zigzag(const int16_t *ring, unsigned table) {
 }
 
 void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
-    int voldiv = 4 - settings.get<Volume>();
-
     if (!spuIsOpen) return;
 
     // Store the info for save states.
     xapGlobal = xap;
 
     const int repeat = xap->freq == 18900 ? 2 : 1;
-    // 6 inputs make 7 outputs; size for the whole sector plus what is pending.
-    static constexpr size_t c_maxFrames = (4032 * 2 / 6 + 1) * 7;
-    SDLAudio::Frame XABuffer[c_maxFrames];
-    SDLAudio::Frame *XAFeed = XABuffer;
 
-    // The lock is needed for the capture buffers and mixIrqAddress, both shared with the
-    // mixer thread. Taken unconditionally: gating it on an unlocked read of mixIrqAddress
-    // is itself a race, and could pair a skipped lock with a later unlock.
-    std::unique_lock<std::mutex> cbLock(cbMtx);
-    cdFeedCycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
+    // The lock is needed for the capture buffers, the CD input queue and mixIrqAddress, all
+    // shared with the mixer thread. Taken unconditionally: gating it on an unlocked read of
+    // mixIrqAddress is itself a race, and could pair a skipped lock with a later unlock.
+    std::lock_guard<std::mutex> cbLock(cbMtx);
+    const uint64_t cycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
+    cdFeedCycle = cycle;
+    // One frame per sample, from where the stream stands when the CD delivers the sector.
+    uint64_t stamp = m_cdQueue.start(sampleAfter(cycle));
 
     if (xap->freq == 44100) {
         // CD-DA is already at the output rate and skips the zigzag interpolator.
@@ -93,14 +90,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                     g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
                 }
             }
-            SDLAudio::Frame f;
-            f.L = l / voldiv;
-            f.R = r / voldiv;
-            *XAFeed++ = f;
-        }
-        cbLock.unlock();
-        if (XAFeed != XABuffer) {
-            m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
+            m_cdQueue.push(l, r, stamp++);
         }
         return;
     }
@@ -143,18 +133,10 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                         g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
                     }
                 }
-                SDLAudio::Frame f;
-                f.L = rawSampleL / voldiv;
-                f.R = rawSampleR / voldiv;
-                *XAFeed++ = f;
+                m_cdQueue.push(rawSampleL, rawSampleR, stamp++);
             }
         }
         xaLastL = l;
         xaLastR = r;
-    }
-    cbLock.unlock();
-
-    if (XAFeed != XABuffer) {
-        m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
     }
 }

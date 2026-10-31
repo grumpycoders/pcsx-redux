@@ -21,6 +21,7 @@
 
 #if defined(DYNAREC_X86_64)
 #include <cassert>
+#include <cstring>
 
 bool DynaRecCPU::Init() {
     // Initialize recompiler memory
@@ -622,7 +623,8 @@ void DynaRecCPU::handleLinking() {
             gen.jne((void*)m_returnFromBlock);  // Return if the block addr changed
             recompile(nextPC, false);           // Fallthrough to next block
 
-            *(uint32_t*)(pointer - 4) = (uint32_t)(uintptr_t)*nextBlockPointer;  // Patch comparison value
+            const uint32_t patchValue = (uint32_t)(uintptr_t)*nextBlockPointer;
+            std::memcpy(pointer - 4, &patchValue, sizeof(patchValue));  // Patch comparison value
         } else {  // If it has already been compiled, link by jumping to the compiled code
             if (Xbyak::inner::IsInInt32(nextBlockOffset)) {
                 gen.cmp(dword[contextPointer + nextBlockOffset], (uint32_t)(uintptr_t)*nextBlockPointer);
@@ -717,6 +719,15 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
                                            : LoadDelayDependencyType::NoDependency;
             break;
         }
+        case 0x20:  // LB
+        case 0x21:  // LH
+        case 0x23:  // LW
+        case 0x24:  // LBU
+        case 0x25:  // LHU
+            // A load into the same register in the delay slot cancels our pending load, so we emulate the delay and
+            // let the next load cancel it. LWL/LWR are excluded as they merge with the pending value instead.
+            dependencyType = DepIfRsOrRt;
+            break;
         default:
             dependencyType = mainDependencyList[opcode];
             break;

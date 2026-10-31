@@ -40,7 +40,6 @@ end
 imgui.safe.Begin = imgui.safe.builder(imgui.Begin, nil, imgui.End)
 -- EndChild has to be called whatever BeginChild returns.
 imgui.safe.BeginChild = imgui.safe.builder(imgui.BeginChild, nil, imgui.EndChild)
-imgui.safe.BeginChildFrame = imgui.safe.builder(imgui.BeginChildFrame, imgui.EndChildFrame)
 imgui.safe.BeginChild_4 = imgui.safe.builder(imgui.BeginChild_4, nil, imgui.EndChild)
 imgui.safe.BeginCombo = imgui.safe.builder(imgui.BeginCombo, imgui.EndCombo)
 -- BeginDisabled and BeginGroup return nothing: their contents always run.

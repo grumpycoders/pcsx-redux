@@ -14,7 +14,7 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
+      image: ghcr.io/pcsx-redux/pcsx-redux-build:latest
       env:
         TEST_RESULTS: /tmp/test-results
         BUILD: Coverage
@@ -44,7 +44,7 @@ jobs:
           cp ./openbios.bin src/mips/openbios/
       - run: |
           make -C src/mips/monitor/hosts/retail -j 2 BUILD=LTO
-          xvfb-run catchsegv ./pcsx-redux -stdout -lua_stdout -testmode -no-gui-logs -exec "dofile 'src/mips/tests/cdrom/create-test-iso.lua'"
+          xvfb-run catchsegv ./pcsx-redux -stdout -lua_stdout -testmode -no-gui-log -exec "dofile 'src/mips/tests/cdrom/create-test-iso.lua'"
       - name: Test
         run: |
           xvfb-run catchsegv ./pcsx-redux-tests

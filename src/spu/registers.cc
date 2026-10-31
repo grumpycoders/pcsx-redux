@@ -24,6 +24,7 @@
 #include "core/logger.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "core/spulogger.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 
@@ -38,6 +39,8 @@ uint64_t readerCycle() { return PCSX::g_emulator->m_cpu->m_regs.cycle; }
 }  // namespace
 
 uint64_t PCSX::SPU::impl::cycleToSample(uint64_t cycle) const { return cycle / cyclesPerSample(); }
+
+uint64_t PCSX::SPU::impl::sampleToCycle(uint64_t sample) const { return sample * cyclesPerSample(); }
 
 // Evaluate voice `ch`'s envelope at `cycle` by stepping a COPY forward from the
 // key-on checkpoint. The mixer's own adsr.step() in synthesizeVoice is untouched;
@@ -287,6 +290,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
     const uint64_t cycle = readerCycle();
     publishHorizon(cycle);
 
+    g_emulator->m_spuLogger->logRegWrite(r - 0xc00, val, regArea);
     regArea[(r - 0xc00) >> 1] = val;
 
     if (r >= 0x0c00 && r < 0x0d80) {
@@ -307,7 +311,13 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             case 10:
                 decodeAdsrHigh(m_adsrShadow[ch], val);
                 break;
+            case 6:
+                // Logged post-truncation, with the raw register value kept alongside, so a game
+                // setting a start address off the block grid stays visible.
+                g_emulator->m_spuLogger->log(SPULogger::Kind::VoiceStart, (uint32_t)((val << 3) & ~0xf), 0, val, ch);
+                break;
             case 14: {
+                g_emulator->m_spuLogger->log(SPULogger::Kind::VoiceLoop, (uint32_t)((val << 3) & ~0xf), 0, val, ch);
                 // Bring the ENVX walk up to this write before it sees the new address.
                 auto& cp = m_envelopeCheckpoint[ch];
                 if (cp.keyedOn) {
@@ -322,6 +332,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
         switch (r) {
             case H_SPUaddr:
                 spuAddr = (uint32_t)val * 8;
+                g_emulator->m_spuLogger->log(SPULogger::Kind::TransferAddr, spuAddr, 0, val);
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Data Transfer Address = %04x\n", val);
                 return;
 
@@ -330,6 +341,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 // word changes under it.
                 catchUp(cycle);
                 std::lock_guard<std::mutex> lock(cbMtx);
+                g_emulator->m_spuLogger->log(SPULogger::Kind::PIOWrite, spuAddr, 2, val);
                 spuMem[spuAddr >> 1] = val;
                 spuAddr += 2;
                 if (spuAddr > 0x7ffff) {
@@ -348,22 +360,30 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 spuIrq = val;
                 break;
 
-            // CD audio volume feeds the XA path, which runs on the CPU thread.
+            // SPUSTAT is read-only: a write changes nothing, the IRQ9 flag included.
+            case H_SPUstat:
+                PCSX::PSXSPU_LOGGER::Log("SPU.write, STAT = %04x, (read-only)\n", val);
+                return;
+            case H_SPUReverbAddr:
+                // The mixer applies the base later; log the byte offset it will settle on.
+                g_emulator->m_spuLogger->log(SPULogger::Kind::ReverbAddr,
+                                             (val == 0xffff || val <= 0x200) ? 0 : (uint32_t)val << 3, 0, val);
+                break;
+
+            // CD audio volume: the mixer applies it to the CD input (applyRegister).
             case H_CDLeft:
                 iLeftXAVol = val & 0x7fff;
                 if (cddavCallback) {
                     cddavCallback(0, val);
                 }
-                PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x, unimplemented\n", val);
-                return;
+                break;
 
             case H_CDRight:
                 iRightXAVol = val & 0x7fff;
                 if (cddavCallback) {
                     cddavCallback(1, val);
                 }
-                PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x, unimplemented\n", val);
-                return;
+                break;
 
             case H_SPUon1:
                 SoundOn(0, 16, val, cycle);
@@ -391,6 +411,33 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
 // The mixer-side half of a register write, run on the mixer thread when the write comes due
 // (or on the CPU thread with the mixer stopped).
+// The mixer-side half of a main volume or CD volume write. Returns false for any other register.
+bool PCSX::SPU::impl::applyMixVolume(uint32_t r, uint16_t val) {
+    switch (r) {
+        case H_SPUmvolL:
+            m_mainVolume.applyLeft(val);
+            m_mainLeftWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Left = %04x\n", val);
+            return true;
+        case H_SPUmvolR:
+            m_mainVolume.applyRight(val);
+            m_mainRightWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Right = %04x\n", val);
+            return true;
+        case H_CDLeft:
+            m_cdVolumeLeft = static_cast<int16_t>(val);
+            m_cdLeftWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x\n", val);
+            return true;
+        case H_CDRight:
+            m_cdVolumeRight = static_cast<int16_t>(val);
+            m_cdRightWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x\n", val);
+            return true;
+    }
+    return false;
+}
+
 void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
     const uint32_t r = reg & 0xfff;
 
@@ -448,6 +495,8 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
         return;
     }
 
+    if (applyMixVolume(r, val)) return;
+
     switch (r) {
         case H_SPUctrl:
             // Writing IRQ9 Enable = 0 is the acknowledge: it is the only thing that clears
@@ -457,11 +506,6 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
             m_ctrlWritesPending--;
             m_noise.setClock((spuCtrl & (ControlFlags::NoiseShiftMask | ControlFlags::NoiseStepMask)) >> 8);
             PCSX::PSXSPU_LOGGER::Log("SPU.write, CTRL = %04x\n", val);
-            break;
-
-        case H_SPUstat:
-            spuStat = val & 0xf800;
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, STAT = %04x, (read-only)\n", val);
             break;
 
         case H_SPUReverbAddr:
@@ -498,14 +542,6 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
 
         case H_ExtRight:
             PCSX::PSXSPU_LOGGER::Log("SPU.write, External Audio Input Volume Right = %04x, unimplemented\n", val);
-            break;
-
-        case H_SPUmvolL:
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Left = %04x, unimplemented\n", val);
-            break;
-
-        case H_SPUmvolR:
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Right = %04x, unimplemented\n", val);
             break;
 
         // Voice 0..23 ON/OFF (status) (ENDX), read-only.
@@ -837,6 +873,9 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val, uint64_t cycle) 
             cp.cachedFraction = 0;
             cp.cachedOn = true;
             resetAdpcmWalk(ch);
+            // One entry per voice actually keyed, carrying the address it is about to decode
+            // from: the only sample entry point that is ground truth rather than inference.
+            g_emulator->m_spuLogger->log(SPULogger::Kind::KeyOn, cp.keyOnBlock, 0, 1, ch);
         }
     }
 }
@@ -874,7 +913,12 @@ void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val, uint64_t cycle)
             // walk can cross it. First key-off after a key-on wins; a repeat is not
             // a second transition. SoundOn clears this.
             auto& cp = m_envelopeCheckpoint[ch];
-            if (cp.keyedOn && cp.keyOffCycle == 0) cp.keyOffCycle = cycle;
+            if (cp.keyedOn && cp.keyOffCycle == 0) {
+                cp.keyOffCycle = cycle;
+                // The decode cursor belongs to the mixer thread; the released sample is named
+                // by the start address it was keyed on with.
+                g_emulator->m_spuLogger->log(SPULogger::Kind::KeyOff, cp.keyOnBlock, 0, 0, ch);
+            }
         }
     }
 }

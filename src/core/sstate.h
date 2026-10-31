@@ -47,7 +47,11 @@ typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00080000>, TYPESTRING("rom"), 
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00800000>, TYPESTRING("exp1"), 3> EXP1;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00010000>, TYPESTRING("hardware"), 4> HardwareMemory;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00200000>, TYPESTRING("sram"), 5> SRAM;
-typedef Protobuf::Message<TYPESTRING("Memory"), RAM, ROM, EXP1, HardwareMemory, SRAM> Memory;
+// The BIU cache control register at 0xfffe0130, which decides whether stores reach RAM. States from
+// before it was saved don't have has_biu, and leave it as it is.
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("biu"), 6> BIU;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("has_biu"), 7> HasBIU;
+typedef Protobuf::Message<TYPESTRING("Memory"), RAM, ROM, EXP1, HardwareMemory, SRAM, BIU, HasBIU> Memory;
 typedef Protobuf::MessageField<Memory, TYPESTRING("memory"), 3> MemoryField;
 
 typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 34, TYPESTRING("gpr"), 1> GPR;
@@ -91,10 +95,12 @@ typedef Protobuf::MessageField<GtePendingWriteInfo, TYPESTRING("gte_pending_1"),
 typedef Protobuf::MessageField<GtePendingWriteInfo, TYPESTRING("gte_pending_2"), 22> GtePending2;
 typedef Protobuf::MessageField<GtePendingWriteInfo, TYPESTRING("gte_pending_3"), 23> GtePending3;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("gte_pending_count"), 24> GtePendingCount;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("next_is_branch_slot"), 25> NextIsBranchSlot;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("next_slot_branch_pc"), 26> NextSlotBranchPC;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, ScheduleMask, ICacheAddr,
                           ICacheCode, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2, CurrentDelayedLoad,
                           ScheduleTargetsField, InISR, MulDivReady, GteReady, GtePending1, GtePending2, GtePending3,
-                          GtePendingCount>
+                          GtePendingCount, NextIsBranchSlot, NextSlotBranchPC>
     Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersField;
 
@@ -149,9 +155,40 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("noiseVal"), 18> SPUNoiseVa
 // ENDX latch, one bit per voice
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("endx"), 19> SPUEndx;
 
+// main volume sides written by software: bit 0 left, bit 1 right; bit 2 marks the field present
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("mainVolWritten"), 20> SPUMainVolWritten;
+
+// The cpu-side ENVX walk (SPU::impl::EnvelopeCheckpoint), one per voice. ENVX reads are answered
+// from it, so a state restored without it answers them from whatever the walk held before.
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("keyOnCycle"), 1> ECPKeyOnCycle;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("serviceSample"), 2> ECPServiceSample;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("keyOffCycle"), 3> ECPKeyOffCycle;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("keyedOn"), 4> ECPKeyedOn;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("cachedSample"), 5> ECPCachedSample;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cachedState"), 6> ECPCachedState;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cachedVol"), 7> ECPCachedVol;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cachedFraction"), 8> ECPCachedFraction;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("cachedOn"), 9> ECPCachedOn;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("block"), 10> ECPBlock;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("loop"), 11> ECPLoop;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ignoreLoop"), 12> ECPIgnoreLoop;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("left"), 13> ECPLeft;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("pos"), 14> ECPPos;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("pitchStep"), 15> ECPPitchStep;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ended"), 16> ECPEnded;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("untracked"), 17> ECPUntracked;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnBlock"), 18> ECPKeyOnBlock;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnLoop"), 19> ECPKeyOnLoop;
+typedef Protobuf::Message<TYPESTRING("EnvelopeCheckpoint"), ECPKeyOnCycle, ECPServiceSample, ECPKeyOffCycle, ECPKeyedOn,
+                          ECPCachedSample, ECPCachedState, ECPCachedVol, ECPCachedFraction, ECPCachedOn, ECPBlock,
+                          ECPLoop, ECPIgnoreLoop, ECPLeft, ECPPos, ECPPitchStep, ECPEnded, ECPUntracked, ECPKeyOnBlock,
+                          ECPKeyOnLoop>
+    EnvelopeCheckpoint;
+typedef Protobuf::RepeatedField<EnvelopeCheckpoint, 24, TYPESTRING("envelopeCheckpoint"), 21> EnvelopeCheckpoints;
+
 typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels, SPUAddr, SPUCtrl,
                           SPUStat, CBStartIndex, CBCurrIndex, CBEndIndex, CBVoiceIndex, CBCDLeft, CBCDRight,
-                          SPUNoiseClock, SPUNoiseCount, SPUNoiseVal, SPUEndx>
+                          SPUNoiseClock, SPUNoiseCount, SPUNoiseVal, SPUEndx, SPUMainVolWritten, EnvelopeCheckpoints>
     SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 6> SPUField;
 
@@ -170,6 +207,7 @@ typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_state"), 12> SIOPad
 // skip id 13
 // skip id 14
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("currentdevice"), 15> SIOCurrentDevice;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("pad_address"), 32> SIOPadAddress;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd1_tempbuffer"), 16> SIOMCD1TempBuffer;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1_directoryflag"), 17> SIOMCD1DirectoryFlag;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1_checksumin"), 18> SIOMCD1ChecksumIn;
@@ -186,13 +224,90 @@ typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2_commandticks"), 28
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2_currentcommand"), 29> SIOMCD2CurrentCommand;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2_sector"), 30> SIOMCD2Sector;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd2_dataoffset"), 31> SIOMCD2DataOffset;
+// The memory cards in a multitap's slots B to D, SIO::m_tapMemoryCard[0] to [5].
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd1b_tempbuffer"), 33> SIOMCD1BTempBuffer;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1b_directoryflag"), 34> SIOMCD1BDirectoryFlag;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1b_checksumin"), 35> SIOMCD1BChecksumIn;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1b_checksumout"), 36> SIOMCD1BChecksumOut;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd1b_commandticks"), 37> SIOMCD1BCommandTicks;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1b_currentcommand"), 38> SIOMCD1BCurrentCommand;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd1b_sector"), 39> SIOMCD1BSector;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd1b_dataoffset"), 40> SIOMCD1BDataOffset;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd1c_tempbuffer"), 41> SIOMCD1CTempBuffer;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1c_directoryflag"), 42> SIOMCD1CDirectoryFlag;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1c_checksumin"), 43> SIOMCD1CChecksumIn;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1c_checksumout"), 44> SIOMCD1CChecksumOut;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd1c_commandticks"), 45> SIOMCD1CCommandTicks;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1c_currentcommand"), 46> SIOMCD1CCurrentCommand;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd1c_sector"), 47> SIOMCD1CSector;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd1c_dataoffset"), 48> SIOMCD1CDataOffset;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd1d_tempbuffer"), 49> SIOMCD1DTempBuffer;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1d_directoryflag"), 50> SIOMCD1DDirectoryFlag;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1d_checksumin"), 51> SIOMCD1DChecksumIn;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1d_checksumout"), 52> SIOMCD1DChecksumOut;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd1d_commandticks"), 53> SIOMCD1DCommandTicks;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1d_currentcommand"), 54> SIOMCD1DCurrentCommand;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd1d_sector"), 55> SIOMCD1DSector;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd1d_dataoffset"), 56> SIOMCD1DDataOffset;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd2b_tempbuffer"), 57> SIOMCD2BTempBuffer;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2b_directoryflag"), 58> SIOMCD2BDirectoryFlag;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2b_checksumin"), 59> SIOMCD2BChecksumIn;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2b_checksumout"), 60> SIOMCD2BChecksumOut;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2b_commandticks"), 61> SIOMCD2BCommandTicks;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2b_currentcommand"), 62> SIOMCD2BCurrentCommand;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2b_sector"), 63> SIOMCD2BSector;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd2b_dataoffset"), 64> SIOMCD2BDataOffset;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd2c_tempbuffer"), 65> SIOMCD2CTempBuffer;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2c_directoryflag"), 66> SIOMCD2CDirectoryFlag;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2c_checksumin"), 67> SIOMCD2CChecksumIn;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2c_checksumout"), 68> SIOMCD2CChecksumOut;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2c_commandticks"), 69> SIOMCD2CCommandTicks;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2c_currentcommand"), 70> SIOMCD2CCurrentCommand;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2c_sector"), 71> SIOMCD2CSector;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd2c_dataoffset"), 72> SIOMCD2CDataOffset;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd2d_tempbuffer"), 73> SIOMCD2DTempBuffer;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2d_directoryflag"), 74> SIOMCD2DDirectoryFlag;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2d_checksumin"), 75> SIOMCD2DChecksumIn;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2d_checksumout"), 76> SIOMCD2DChecksumOut;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2d_commandticks"), 77> SIOMCD2DCommandTicks;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2d_currentcommand"), 78> SIOMCD2DCurrentCommand;
+typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2d_sector"), 79> SIOMCD2DSector;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd2d_dataoffset"), 80> SIOMCD2DDataOffset;
 
-typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuffer, SIOStatusReg, SIOModeReg, SIOCtrlReg, SIOBaudReg,
-                          SIOBufferMaxIndex, SIOBufferIndex, SIOPadState, SIOCurrentDevice, SIOMCD1TempBuffer,
-                          SIOMCD1DirectoryFlag, SIOMCD1ChecksumIn, SIOMCD1ChecksumOut, SIOMCD1CommandTicks,
-                          SIOMCD1CurrentCommand, SIOMCD1Sector, SIOMCD1DataOffset, SIOMCD2TempBuffer,
-                          SIOMCD2DirectoryFlag, SIOMCD2ChecksumIn, SIOMCD2ChecksumOut, SIOMCD2CommandTicks,
-                          SIOMCD2CurrentCommand, SIOMCD2Sector, SIOMCD2DataOffset>
+// The pad's own side of a transfer, one per port. Absent from states made before this existed;
+// "present" tells a real all-defaults pad from a state that never carried one.
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("present"), 1> PadPresent;
+typedef Protobuf::Field<Protobuf::UInt8, TYPESTRING("cmd"), 2> PadCmd;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("config_mode"), 3> PadConfigMode;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("analog_mode"), 4> PadAnalogMode;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("buffer_len"), 5> PadBufferLen;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("current_byte"), 6> PadCurrentByte;
+typedef Protobuf::Field<Protobuf::FixedBytes<256>, TYPESTRING("buffer"), 7> PadBuffer;
+typedef Protobuf::Field<Protobuf::FixedBytes<6>, TYPESTRING("motor_mapping"), 8> PadMotorMapping;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("config_commands_used"), 9> PadConfigCommandsUsed;
+typedef Protobuf::Field<Protobuf::UInt8, TYPESTRING("old_method_latch"), 10> PadOldMethodLatch;
+typedef Protobuf::Message<TYPESTRING("PadTransfer"), PadPresent, PadCmd, PadConfigMode, PadAnalogMode, PadBufferLen,
+                          PadCurrentByte, PadBuffer, PadMotorMapping, PadConfigCommandsUsed, PadOldMethodLatch>
+    PadTransfer;
+typedef Protobuf::MessageField<PadTransfer, TYPESTRING("pad1"), 81> SIOPad1;
+typedef Protobuf::MessageField<PadTransfer, TYPESTRING("pad2"), 82> SIOPad2;
+
+typedef Protobuf::Message<
+    TYPESTRING("SIO"), SIOBuffer, SIOStatusReg, SIOModeReg, SIOCtrlReg, SIOBaudReg, SIOBufferMaxIndex, SIOBufferIndex,
+    SIOPadState, SIOCurrentDevice, SIOPadAddress, SIOMCD1TempBuffer, SIOMCD1DirectoryFlag, SIOMCD1ChecksumIn,
+    SIOMCD1ChecksumOut, SIOMCD1CommandTicks, SIOMCD1CurrentCommand, SIOMCD1Sector, SIOMCD1DataOffset, SIOMCD2TempBuffer,
+    SIOMCD2DirectoryFlag, SIOMCD2ChecksumIn, SIOMCD2ChecksumOut, SIOMCD2CommandTicks, SIOMCD2CurrentCommand,
+    SIOMCD2Sector, SIOMCD2DataOffset, SIOMCD1BTempBuffer, SIOMCD1BDirectoryFlag, SIOMCD1BChecksumIn,
+    SIOMCD1BChecksumOut, SIOMCD1BCommandTicks, SIOMCD1BCurrentCommand, SIOMCD1BSector, SIOMCD1BDataOffset,
+    SIOMCD1CTempBuffer, SIOMCD1CDirectoryFlag, SIOMCD1CChecksumIn, SIOMCD1CChecksumOut, SIOMCD1CCommandTicks,
+    SIOMCD1CCurrentCommand, SIOMCD1CSector, SIOMCD1CDataOffset, SIOMCD1DTempBuffer, SIOMCD1DDirectoryFlag,
+    SIOMCD1DChecksumIn, SIOMCD1DChecksumOut, SIOMCD1DCommandTicks, SIOMCD1DCurrentCommand, SIOMCD1DSector,
+    SIOMCD1DDataOffset, SIOMCD2BTempBuffer, SIOMCD2BDirectoryFlag, SIOMCD2BChecksumIn, SIOMCD2BChecksumOut,
+    SIOMCD2BCommandTicks, SIOMCD2BCurrentCommand, SIOMCD2BSector, SIOMCD2BDataOffset, SIOMCD2CTempBuffer,
+    SIOMCD2CDirectoryFlag, SIOMCD2CChecksumIn, SIOMCD2CChecksumOut, SIOMCD2CCommandTicks, SIOMCD2CCurrentCommand,
+    SIOMCD2CSector, SIOMCD2CDataOffset, SIOMCD2DTempBuffer, SIOMCD2DDirectoryFlag, SIOMCD2DChecksumIn,
+    SIOMCD2DChecksumOut, SIOMCD2DCommandTicks, SIOMCD2DCurrentCommand, SIOMCD2DSector, SIOMCD2DDataOffset, SIOPad1,
+    SIOPad2>
     SIO;
 typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 7> SIOField;
 // skip id 8
@@ -216,7 +331,8 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("hsync_count"), 2> HSyncCou
 // Field 3 was spu_sync_countdown, dropped when the SPU stopped being pumped on the
 // CPU's scanline schedule. DO NOT REUSE FIELD NUMBER 3 in Counters.
 typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("psx_next_counter"), 4> PSXNextCounter;
-typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, PSXNextCounter> Counters;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("field_count"), 5> FieldCount;
+typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, PSXNextCounter, FieldCount> Counters;
 typedef Protobuf::MessageField<Counters, TYPESTRING("counters"), 10> CountersField;
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("reg0"), 1> MDECReg0;
@@ -345,6 +461,8 @@ typedef Protobuf::MessageField<CDQueueElement, TYPESTRING("responseFifo0"), 46> 
 typedef Protobuf::MessageField<CDQueueElement, TYPESTRING("responseFifo1"), 47> CDResponseFifo1;
 typedef Protobuf::MessageField<CDADPCM, TYPESTRING("xaLeft"), 48> CDXALeft;
 typedef Protobuf::MessageField<CDADPCM, TYPESTRING("xaRight"), 49> CDXARight;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("sectorReadSinceSeek"), 50> CDSectorReadSinceSeek;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("scexCountersReset"), 51> CDScexCountersReset;
 typedef Protobuf::Message<
     TYPESTRING("CDRom"), CDDataFIFO, CDDataFIFOIndex, CDDataFIFOSize, CDDataFIFOPending, CDRegisterAddress, CDMotorOn,
     CDSpeedChanged, CDInvalidLocL, CDDataRequested, CDSubheaderFilter, CDRealtime, CDReadingState, CDStartPlaying,
@@ -352,7 +470,7 @@ typedef Protobuf::Message<
     CDSpeed, CDReadSpan, CDInterruptCauseMask, CDATV, CDATVPending, CDADPCMMuted, CDMode, CDFilterFile, CDFilterChannel,
     CDXAEnded, CDXAFirstSector, CDSoundMapEnabled, CDCurrentPosition, CDSeekPosition, CDLastLocP, CDLastLocL, CDSeed,
     CDLidOpen, CDWasLidOpened, CDLidCloseScheduled, CDLidCloseAtCycles, CDCommandFifo, CDCommandExecuting,
-    CDResponseFifo0, CDResponseFifo1, CDXALeft, CDXARight>
+    CDResponseFifo0, CDResponseFifo1, CDXALeft, CDXARight, CDSectorReadSinceSeek, CDScexCountersReset>
     CDRom;
 typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 15> CDRomField;
 
@@ -361,13 +479,20 @@ typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, Thumbnail
                           CallStacksField, CDRomField>
     SaveState;
 
-typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
-                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
-                            CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call,
-                            CallStack, CallStacks, SaveState>
+typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, GtePendingWriteInfo, Registers, GPU,
+                            ADPCMDecode, XA, ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx,
+                            Channel, EnvelopeCheckpoint, SPU, PadTransfer, SIO, CDQueueElement, CDMSF, CDADPCM, CDRom,
+                            Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();
+
+// The classes whose private state the save state reads befriend this instead of
+// constructSaveState() itself, so their headers only need a forward declaration of it
+// rather than this whole schema.
+struct Access {
+    static SaveState constructSaveState();
+};
 
 std::string save();
 // Replaces the emulator state right now. Only safe with nothing of the

@@ -109,9 +109,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
         m_nextIsBranchSlot = true;
         m_nextSlotBranchPC = m_regs.pc - 4;
     }
-    bool m_nextIsBranchSlot = false;
     bool m_inBranchSlot = false;
-    uint32_t m_nextSlotBranchPC = 0;
     uint32_t m_slotBranchPC = 0;
     // A software interrupt raised in a branch slot is taken once the slot completes, at the next
     // instruction in execution order, with BD clear.
@@ -124,6 +122,11 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     virtual bool Init() override;
     virtual void Reset() override;
     virtual void Execute() override;
+    // Same arming test Debug::checkBP applies: TR and DE set, plus kernel or user mode enabled.
+    bool cop0Armed() const {
+        const uint32_t dcic = m_regs.CP0.n.DCIC;
+        return ((dcic & 0x80800000) == 0x80800000) && (dcic & 0x60000000);
+    }
     virtual RunUntilResult RunUntil(uint32_t stopPC, uint64_t cycleBudget) override;
     virtual void Clear(uint32_t Addr, uint32_t Size) override;
     virtual void Shutdown() override;
@@ -134,7 +137,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
         if (m_delayedLoadInfo[other].index == index) m_delayedLoadInfo[other].active = false;
     }
     // For the GUI dynarec disassembly widget
-    virtual const uint8_t *getBufferPtr() final { return nullptr; }
+    virtual const uint8_t* getBufferPtr() final { return nullptr; }
     virtual const size_t getBufferSize() final { return 0; }
 
     void psxTestSWInts();
@@ -142,12 +145,12 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     typedef void (InterpretedCPU::*intFunc_t)(uint32_t code);
     typedef const intFunc_t cIntFunc_t;
 
-    cIntFunc_t *s_pPsxBSC = NULL;
-    cIntFunc_t *s_pPsxSPC = NULL;
-    cIntFunc_t *s_pPsxREG = NULL;
-    cIntFunc_t *s_pPsxCP0 = NULL;
-    cIntFunc_t *s_pPsxCP2 = NULL;
-    cIntFunc_t *s_pPsxCP2BSC = NULL;
+    cIntFunc_t* s_pPsxBSC = NULL;
+    cIntFunc_t* s_pPsxSPC = NULL;
+    cIntFunc_t* s_pPsxREG = NULL;
+    cIntFunc_t* s_pPsxCP0 = NULL;
+    cIntFunc_t* s_pPsxCP2 = NULL;
+    cIntFunc_t* s_pPsxCP2BSC = NULL;
 
     template <bool debug, bool trace, bool detached = false>
     void execBlock();
@@ -402,7 +405,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
 };
 
 inline uint32_t InterpretedCPU::branchBase() {
-    auto &pending = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
+    auto& pending = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
     return pending.pcActive ? pending.pcValue : m_regs.pc;
 }
 
@@ -421,23 +424,19 @@ void InterpretedCPU::psxADDI(uint32_t code) {
     const auto imm = _Imm_;
     uint32_t res = rs + imm;
 
+    bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
+    if (overflow) {                                    // if an overflow occurs, throw an exception
+        m_regs.pc.raw() -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADDI instruction from 0x%08x!\n"), m_regs.pc);
+        exception(Exception::ArithmeticOverflow, m_inDelaySlot);
+        return;
+    }
+
     if (_Rt_ == 29) {
         if (_Rs_ == 29) {
             PCSX::g_emulator->m_callStacks->offsetSP(rs, imm);
         } else {
             PCSX::g_emulator->m_callStacks->setSP(rs, res);
-        }
-    }
-
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
-        if (overflow) {                                    // if an overflow occurs, throw an exception
-            m_regs.pc.raw() -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADDI instruction from 0x%08x!\n"),
-                                m_regs.pc);
-            exception(Exception::ArithmeticOverflow, m_inDelaySlot);
-            return;
         }
     }
 
@@ -515,22 +514,19 @@ void InterpretedCPU::psxADD(uint32_t code) {
     const auto rs = _rRs_;
     const auto rt = _rRt_;
     uint32_t res = rs + rt;
+    bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
+    if (overflow) {                                   // if an overflow occurs, throw an exception
+        m_regs.pc.raw() -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADD instruction from 0x%08x!\n"), m_regs.pc);
+        exception(Exception::ArithmeticOverflow, m_inDelaySlot);
+        return;
+    }
+
     if (_Rd_ == 29) {
         if ((_Rs_ == 29) || (_Rt_ == 29)) {
             PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
         } else {
             PCSX::g_emulator->m_callStacks->setSP(_rRd_, res);
-        }
-    }
-
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
-        if (overflow) {                                   // if an overflow occurs, throw an exception
-            m_regs.pc.raw() -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADD instruction from 0x%08x!\n"), m_regs.pc);
-            exception(Exception::ArithmeticOverflow, m_inDelaySlot);
-            return;
         }
     }
 
@@ -557,22 +553,19 @@ void InterpretedCPU::psxSUB(uint32_t code) {
     const auto rs = _rRs_;
     const auto rt = _rRt_;
     uint32_t res = rs - rt;
+    bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
+    if (overflow) {                                    // if an overflow occurs, throw an exception
+        m_regs.pc.raw() -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in SUB instruction from 0x%08x!\n"), m_regs.pc);
+        exception(Exception::ArithmeticOverflow, m_inDelaySlot);
+        return;
+    }
+
     if (_Rd_ == 29) {
         if (_Rs_ == 29) {
             PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
         } else {
             PCSX::g_emulator->m_callStacks->setSP(_rRd_, res);
-        }
-    }
-
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
-        if (overflow) {                                    // if an overflow occurs, throw an exception
-            m_regs.pc.raw() -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in SUB instruction from 0x%08x!\n"), m_regs.pc);
-            exception(Exception::ArithmeticOverflow, m_inDelaySlot);
-            return;
         }
     }
 
@@ -940,6 +933,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
 void InterpretedCPU::psxLB(uint32_t code) {
     // load delay = 1 latency
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         delayedLoadRef<int32_t>(_Rt_) = (int8_t)PCSX::g_emulator->m_mem->read8(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read8(_oB_);
@@ -949,6 +943,7 @@ void InterpretedCPU::psxLB(uint32_t code) {
 void InterpretedCPU::psxLBU(uint32_t code) {
     // load delay = 1 latency
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         delayedLoadRef(_Rt_) = PCSX::g_emulator->m_mem->read8(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read8(_oB_);
@@ -966,6 +961,7 @@ void InterpretedCPU::psxLH(uint32_t code) {
     }
 
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         delayedLoadRef<int32_t>(_Rt_) = (short)PCSX::g_emulator->m_mem->read16(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read16(_oB_);
@@ -983,6 +979,7 @@ void InterpretedCPU::psxLHU(uint32_t code) {
     }
 
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         delayedLoadRef(_Rt_) = PCSX::g_emulator->m_mem->read16(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read16(_oB_);
@@ -1001,6 +998,7 @@ void InterpretedCPU::psxLW(uint32_t code) {
 
     uint32_t val = PCSX::g_emulator->m_mem->read32(_oB_);
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         switch (_Rt_) {
             case 29:
                 PCSX::g_emulator->m_callStacks->setSP(m_regs.GPR.n.sp, val);
@@ -1239,8 +1237,8 @@ void InterpretedCPU::psxCOP2(uint32_t code) {
     }
     gteDrainIfStalling();
     gteStart(gteLatency(_Funct_));
-    gteRunCommand(code, [](PCSX::R3000Acpu *cpu, uint32_t code) {
-        auto self = static_cast<InterpretedCPU *>(cpu);
+    gteRunCommand(code, [](PCSX::R3000Acpu* cpu, uint32_t code) {
+        auto self = static_cast<InterpretedCPU*>(cpu);
         (*self.*(self->s_pPsxCP2[_Funct_]))(code);
     });
 }
@@ -1403,7 +1401,9 @@ void InterpretedCPU::pgxpPsxNULL(uint32_t code) {}
         }                                                                         \
         uint32_t tempInstr = code;                                                \
         uint32_t temp2 = reg2;                                                    \
+        const uint32_t pcBefore = m_regs.pc.raw();                                \
         psx##op(code);                                                            \
+        if (m_regs.pc.raw() != pcBefore) return;                                  \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, temp2); \
     }
 
@@ -1440,7 +1440,9 @@ void InterpretedCPU::pgxpPsxNULL(uint32_t code) {}
         uint32_t tempInstr = code;                                                       \
         uint32_t temp2 = reg2;                                                           \
         uint32_t temp3 = reg3;                                                           \
+        const uint32_t pcBefore = m_regs.pc.raw();                                       \
         psx##op(code);                                                                   \
+        if (m_regs.pc.raw() != pcBefore) return;                                         \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, temp2, temp3); \
     }
 
@@ -1699,13 +1701,15 @@ void InterpretedCPU::Reset() {
 void InterpretedCPU::Execute() {
     ZoneScoped;
     while (hasToRun()) {
-        const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        const bool& debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                 .get<PCSX::Emulator::DebugSettings::Debug>();
-        const bool &trace = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        const bool& trace = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                 .get<PCSX::Emulator::DebugSettings::Trace>();
-        const bool &skipISR = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        const bool& skipISR = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                   .get<PCSX::Emulator::DebugSettings::SkipISR>();
-        if (debug) {
+        // The cop0 debug unit is always live on silicon: a guest that arms DCIC gets the debug
+        // path whether or not the debugger is enabled.
+        if (debug || cop0Armed()) {
             if (!trace || (skipISR && m_inISR)) {
                 execBlock<true, false>();
             } else {
@@ -1752,7 +1756,7 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
        other part of the harness is relying on. A call that faults is a result here, not an
        incident: we report the code, EPC and BadVAddr in the return value and leave the
        machine alone. Park the mask for the duration. */
-    auto &debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+    auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
     const uint32_t savedFirstChance = debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>();
     debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>() = 0;
 
@@ -1840,7 +1844,7 @@ inline void InterpretedCPU::execBlock() {
         m_currentDelayedLoad ^= 1;
         flushCurrentDelayedLoad();
         if (m_gtePendingCount) gteTickWrites();
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         bool fromLink = false;
         if (delayedLoad.pcActive) {
             m_regs.pc.raw() = delayedLoad.pcValue;
@@ -1873,7 +1877,8 @@ inline void InterpretedCPU::execBlock() {
            blank RAM executes nops until it happens to meet a branch, which measured at
            262113 instructions in one call - long past any cycle budget, and long past the
            exception that sent it there. */
-    } while (!ranDelaySlot && !debug && !detached);
+        if constexpr (debug || detached) break;
+    } while (!ranDelaySlot && !cop0Armed());
 }
 
 void InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {

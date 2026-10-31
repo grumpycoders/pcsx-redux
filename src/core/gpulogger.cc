@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <utility>
 
 #include "core/gpu.h"
 #include "core/psxemulator.h"
@@ -78,8 +79,10 @@ static const char* const c_vtx = R"(
 
 layout (location = 0) in ivec2 inPos;
 
-// We always apply a 0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies
-const vec2 vertexOffsets = vec2(+0.5, -0.5);
+// The PS1 tests coverage at the integer pixel coordinate, top and left edges inclusive. OpenGL samples at the
+// pixel center, so shift the geometry by just under half a pixel: each pixel is then sampled a hair to the
+// right of and below its integer corner, which keeps the inclusive edges and drops the right and bottom ones.
+const vec2 vertexOffsets = vec2(0.5 - 1.0 / 64.0, 0.5 - 1.0 / 64.0);
 
 void main() {
     // Normalize coords to [0, 2]
@@ -106,9 +109,10 @@ void main() {
 }
 )";
 
-PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
+PCSX::GPULogger::GPULogger(bool followEmulator) : m_listener(g_system->m_eventBus), m_followEmulator(followEmulator) {
+    if (!followEmulator) return;
     m_listener.listen<Events::GPU::VSync>([this](auto event) {
-        m_frameCounter++;
+        setFrame(m_frameCounter + 1);
         const unsigned rate = g_emulator->settings.get<Emulator::SettingVideo>() == Emulator::PSX_TYPE_PAL ? 50 : 60;
         if (++m_fpsVSyncs >= rate) {
             m_guestFPS = float(m_displayStartChanges) * rate / m_fpsVSyncs;
@@ -142,6 +146,14 @@ void PCSX::GPULogger::enable() {
         m_readHeatmapTex.create(1024, 512, GL_R32F);
         m_writtenHighlightTex.create(1024, 512, GL_R32F);
         m_readHighlightTex.create(1024, 512, GL_R32F);
+        m_writtenAccumTex.create(1024, 512, GL_R32F);
+        m_readAccumTex.create(1024, 512, GL_R32F);
+        if (!m_writtenAccumTex.exists()) return;
+        if (!m_readAccumTex.exists()) return;
+        m_writtenAccumFB.createWithTexture(m_writtenAccumTex);
+        m_readAccumFB.createWithTexture(m_readAccumTex);
+        if (!m_writtenAccumFB.exists()) return;
+        if (!m_readAccumFB.exists()) return;
         if (!m_writtenHeatmapTex.exists()) return;
         if (!m_readHeatmapTex.exists()) return;
         if (!m_writtenHighlightTex.exists()) return;
@@ -229,30 +241,71 @@ void PCSX::GPULogger::checkVramBreakpoints(GPU::Logged* node) {
     g_system->log(LogClass::GPU,
                   _("VRAM breakpoint %i triggered: %.*s did a %s intersecting %ix%i at %i,%i - PC = 0x%08x\n"), hit,
                   int(name.size()), name.data(), what, bp.area.w, bp.area.h, bp.area.x, bp.area.y, node->pc);
+    if (!m_followEmulator) return;
     g_system->m_eventBus->signal(Events::GUI::JumpToPC{node->pc});
     g_system->pause();
 }
 
-void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
+// The list shows the frame that just completed. Anything older goes when the next frame starts,
+// so a frame that sent no commands shows as empty.
+void PCSX::GPULogger::setFrame(uint64_t frame) {
+    // Read the counts back at the end of the frame, not when the next frame starts drawing, so the
+    // last frame before the GPU goes idle is still reported.
+    if (m_overdrawStats && m_overdrawDirty && m_hasFramebuffers) {
+        GLint oldReadFBO;
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
+        readOverdraw(m_writtenAccumFB, m_writtenOverdraw, m_writtenOverdrawPixels);
+        readOverdraw(m_readAccumFB, m_readOverdraw, m_readOverdrawPixels);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, oldReadFBO);
+        m_hasOverdrawStats = true;
+    } else if (m_overdrawStats && m_hasOverdrawStats) {
+        // Nothing was drawn this frame.
+        m_writtenOverdraw = {};
+        m_readOverdraw = {};
+        m_writtenOverdrawPixels.clear();
+        m_readOverdrawPixels.clear();
+    }
+    m_overdrawDirty = false;
+    m_frameCounter = frame;
+    if (frame > 0) dropFramesBefore(frame - 1);
+}
+
+void PCSX::GPULogger::dropFramesBefore(uint64_t frame) {
+    bool dropped = false;
+    for (auto i = m_list.begin(); (i != m_list.end()) && (i->frame < frame); i = m_list.begin()) {
+        delete &*i;
+        dropped = true;
+    }
+    if (!dropped) return;
+    // The next command starts a new frame for the heatmaps even though nothing is left to compare it to.
+    m_pendingNewFrame = true;
+    // An empty frame replays from the VRAM it started with, not from the snapshot of the dropped frame.
+    if (m_list.empty()) startNewFrame();
+}
+
+void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin origin, uint32_t value, uint32_t length,
+                                      bool clipped) {
     auto frame = m_frameCounter;
 
-    bool gotNewFrame = false;
+    bool gotNewFrame = std::exchange(m_pendingNewFrame, false);
     for (auto i = m_list.begin(); (i != m_list.end()) && (i->frame != frame); i = m_list.begin()) {
         delete &*i;
         gotNewFrame = true;
     }
-    if (gotNewFrame) startNewFrame();
+    // An empty list is a cleared log, which has no snapshot of its own frame yet.
+    if (gotNewFrame || m_list.empty()) startNewFrame();
 
     node->origin = origin;
     node->value = value;
     node->length = length;
-    node->pc = g_emulator->m_cpu->m_regs.pc;
+    node->pc = m_followEmulator ? g_emulator->m_cpu->m_regs.pc : 0;
     node->frame = frame;
     node->generateStatsInfo();
     m_list.push_back(node);
     checkVramBreakpoints(node);
 
     if (!m_hasFramebuffers) return;
+    m_overdrawDirty = true;
 
     const auto oldFBO = OpenGL::getDrawFramebuffer();
 
@@ -261,21 +314,83 @@ void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin ori
     m_program.use();
     OpenGL::disableScissor();
 
-    OpenGL::setViewport(m_writtenHeatmapTex.width(), m_writtenHeatmapTex.height());
-    m_writtenHeatmapFB.bind(OpenGL::DrawFramebuffer);
+    // The heatmaps count how many times each pixel is touched during the current frame.
+    if (gotNewFrame) {
+        GLint oldReadFBO;
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
+        m_writtenAccumFB.bind(OpenGL::ReadFramebuffer);
+        m_writtenHeatmapFB.bind(OpenGL::DrawFramebuffer);
+        glBlitFramebuffer(0, 0, 1024, 512, 0, 0, 1024, 512, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        m_readAccumFB.bind(OpenGL::ReadFramebuffer);
+        m_readHeatmapFB.bind(OpenGL::DrawFramebuffer);
+        glBlitFramebuffer(0, 0, 1024, 512, 0, 0, 1024, 512, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, oldReadFBO);
+        OpenGL::setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        m_writtenAccumFB.bind(OpenGL::DrawFramebuffer);
+        OpenGL::clearColor();
+        m_readAccumFB.bind(OpenGL::DrawFramebuffer);
+        OpenGL::clearColor();
+    }
+
+    const bool blendWasEnabled = glIsEnabled(GL_BLEND);
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_ONE, GL_ONE);
+
+    OpenGL::setViewport(m_writtenAccumTex.width(), m_writtenAccumTex.height());
+    m_writtenAccumFB.bind(OpenGL::DrawFramebuffer);
+    if (clipped) {
+        int w = int(m_drawingAreaX1) - int(m_drawingAreaX0) + 1;
+        int h = int(m_drawingAreaY1) - int(m_drawingAreaY0) + 1;
+        OpenGL::enableScissor();
+        OpenGL::setScissor(m_drawingAreaX0, m_drawingAreaY0, std::max(w, 0), std::max(h, 0));
+    }
     node->getVertices([this](auto v1, auto v2, auto v3) { addTri(v1, v2, v3); }, GPU::Logged::PixelOp::WRITE);
     flush();
+    OpenGL::disableScissor();
 
-    OpenGL::setViewport(m_readHeatmapTex.width(), m_readHeatmapTex.height());
-    m_readHeatmapFB.bind(OpenGL::DrawFramebuffer);
+    OpenGL::setViewport(m_readAccumTex.width(), m_readAccumTex.height());
+    m_readAccumFB.bind(OpenGL::DrawFramebuffer);
     node->getVertices([this](auto v1, auto v2, auto v3) { addTri(v1, v2, v3); }, GPU::Logged::PixelOp::READ);
     flush();
 
+    if (!blendWasEnabled) glDisable(GL_BLEND);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oldFBO);
     g_emulator->m_gpu->setOpenGLContext();
 }
 
-void PCSX::GPULogger::startNewFrame() { m_vram = g_emulator->m_gpu->getVRAM(GPU::Ownership::ACQUIRE); }
+void PCSX::GPULogger::readOverdraw(OpenGL::Framebuffer& fb, OverdrawStats& stats, std::vector<float>& pixels) {
+    pixels.resize(1024 * 512);
+    fb.bind(OpenGL::ReadFramebuffer);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    glReadPixels(0, 0, 1024, 512, GL_RED, GL_FLOAT, pixels.data());
+    stats = {};
+    for (float f : pixels) {
+        unsigned count = unsigned(f + 0.5f);
+        if (count == 0) continue;
+        stats.total += count;
+        stats.pixels++;
+        if (count > stats.max) stats.max = count;
+        unsigned bucket = count == 1 ? 0 : count == 2 ? 1 : count <= 4 ? 2 : count <= 8 ? 3 : 4;
+        stats.buckets[bucket]++;
+    }
+}
+
+uint64_t PCSX::GPULogger::getOverdrawSum(bool read, int x, int y, int w, int h) const {
+    auto& pixels = read ? m_readOverdrawPixels : m_writtenOverdrawPixels;
+    if (pixels.size() != 1024 * 512) return 0;
+    int x0 = std::max(x, 0), y0 = std::max(y, 0);
+    int x1 = int(std::min<int64_t>(int64_t(x) + w, 1024)), y1 = int(std::min<int64_t>(int64_t(y) + h, 512));
+    uint64_t sum = 0;
+    for (int py = y0; py < y1; py++) {
+        for (int px = x0; px < x1; px++) sum += unsigned(pixels[py * 1024 + px] + 0.5f);
+    }
+    return sum;
+}
+
+PCSX::GPU* PCSX::GPULogger::gpu() const { return m_owner ? m_owner : g_emulator->m_gpu.get(); }
+
+void PCSX::GPULogger::startNewFrame() { m_vram = gpu()->getVRAM(GPU::Ownership::ACQUIRE); }
 
 void PCSX::GPULogger::replay(GPU* gpu) {
     if (m_vram.data()) gpu->partialUpdateVRAM(0, 0, 1024, 512, m_vram.data<uint16_t>());

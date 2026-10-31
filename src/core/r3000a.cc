@@ -23,7 +23,12 @@
 
 #include "core/r3000a.h"
 
+#include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <magic_enum/magic_enum_all.hpp>
+#include <memory>
+#include <thread>
 
 #include "core/cdrom.h"
 #include "core/debug.h"
@@ -35,6 +40,7 @@
 #include "core/sio1.h"
 #include "core/spu.h"
 #include "fmt/format.h"
+#include "support/uvfile.h"
 #include "supportpsx/memory.h"
 
 int PCSX::R3000Acpu::psxInit() {
@@ -75,6 +81,27 @@ void PCSX::R3000Acpu::psxReset() {
     PCSX::g_emulator->m_hw->reset();
 }
 
+namespace {
+
+bool startsWith(std::string_view str, std::string_view prefix) { return str.substr(0, prefix.size()) == prefix; }
+
+bool isSchemeChar(char c) {
+    return isalnum(static_cast<unsigned char>(c)) || (std::string_view("+-.").find(c) != std::string_view::npos);
+}
+
+// "xxx://" at the start of the name, with xxx made of URI scheme characters.
+bool hasScheme(std::string_view name) {
+    auto pos = name.find("://");
+    if ((pos == std::string_view::npos) || (pos == 0)) return false;
+    auto scheme = name.substr(0, pos);
+    return std::all_of(scheme.begin(), scheme.end(), isSchemeChar);
+}
+
+// Names that PCdrv never turns into file paths.
+bool isPCdrvNetName(std::string_view name) { return startsWith(name, "probe:") || hasScheme(name); }
+
+}  // namespace
+
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
 bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
@@ -107,9 +134,15 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_regs.pc.increment();
                         return false;
                     }
-                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     memFile->rSeek(m_regs.GPR.n.a0);
                     auto filename = memFile->gets<false>();
+                    if (isPCdrvNetName(filename)) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        m_regs.pc.increment();
+                        return false;
+                    }
+                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     fd = m_availableFDs.front();
                     auto file = m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename, FileOps::TRUNCATE));
                     file->m_relativeFilename = filename;
@@ -132,9 +165,15 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_regs.pc.increment();
                         return false;
                     }
-                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     memFile->rSeek(m_regs.GPR.n.a0);
                     auto filename = memFile->gets<false>();
+                    if (isPCdrvNetName(filename)) {
+                        // Network names never become file paths.
+                        pcdrvOpenNet(filename);
+                        m_regs.pc.increment();
+                        return false;
+                    }
+                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     PCdrvFiles::iterator file;
                     auto path = basepath / filename;
                     fd = m_availableFDs.front();
@@ -180,6 +219,11 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_regs.pc.increment();
                         return false;
                     }
+                    if (filei->m_kind != PCdrvFile::Kind::File) {
+                        pcdrvReadNet(*filei, memFile);
+                        m_regs.pc.increment();
+                        return false;
+                    }
                     IO<File> file = *filei;
                     if (file->failed() || file->eof()) {
                         regs.v0 = -1;
@@ -203,6 +247,12 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         return false;
                     }
                     IO<File> file = *filei;
+                    if (filei->refusesWrite()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        m_regs.pc.increment();
+                        return false;
+                    }
                     auto slice = memFile->readAt(regs.a2, regs.a3);
                     if ((regs.v1 = file->write(slice.data(), slice.size())) < 0) {
                         regs.v0 = -1;
@@ -215,6 +265,12 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                 case 0x107: {  // PClseek
                     auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a0);
                     if (filei == m_pcdrvFiles.end()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        m_regs.pc.increment();
+                        return false;
+                    }
+                    if (filei->m_kind != PCdrvFile::Kind::File) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc.increment();
@@ -344,6 +400,14 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
 }
 
 void PCSX::R3000Acpu::branchTest() {
+    branchTestEvents();
+    // Last, so that a snapshot taken at a vsync doesn't leave the scheduled callbacks and the
+    // interrupt check of this branchTest() for whoever restores it: Execute() starts by
+    // running an instruction, and they'd wait until the next branch.
+    g_emulator->flushRewindCapture();
+}
+
+void PCSX::R3000Acpu::branchTestEvents() {
     const uint64_t cycle = m_regs.cycle;
 
     if (cycle >= g_emulator->m_counters->m_psxNextCounter) g_emulator->m_counters->update();

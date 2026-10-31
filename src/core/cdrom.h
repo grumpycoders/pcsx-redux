@@ -29,11 +29,14 @@
 #include "core/psxhw.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sstate.h"
 #include "core/system.h"
 #include "supportpsx/iec-60908b.h"
 
 namespace PCSX {
+
+namespace SaveStates {
+struct Access;
+}
 
 namespace Widgets {
 class IsoBrowser;
@@ -45,6 +48,12 @@ class CDRom {
     CDRom() : m_iso(new CDRIso(new FailedFile)) {}
     virtual ~CDRom() {}
     static CDRom* factory();
+    // The jitter generator is a multiplicative LCG, so its state is always odd.
+    static constexpr uint64_t c_defaultSeed = 9223521712174600777ull;
+    // A save state written before the seed was saved restores it as 0.
+    void defaultSeedIfMissing() {
+        if (m_seed == 0) m_seed = m_powerOnSeed;
+    }
     bool isLidOpen();
     void closeLid() {
         m_lidOpen = false;
@@ -73,6 +82,10 @@ class CDRom {
         m_iso.reset(iso);
         g_system->m_eventBus->signal(Events::IsoMounted{});
     }
+    void setIso(std::shared_ptr<CDRIso> iso) {
+        m_iso = std::move(iso);
+        g_system->m_eventBus->signal(Events::IsoMounted{});
+    }
 
     const std::string& getCDRomID() { return m_cdromId; }
     const std::string& getCDRomLabel() { return m_cdromLabel; }
@@ -98,7 +111,7 @@ class CDRom {
 
   protected:
     std::shared_ptr<CDRIso> m_iso;
-    friend SaveStates::SaveState SaveStates::constructSaveState();
+    friend struct SaveStates::Access;
 
     bool dataFIFOHasData() { return m_dataFIFOIndex != m_dataFIFOSize; }
 
@@ -108,7 +121,8 @@ class CDRom {
     uint32_t m_lidCloseAtCycles = 0;
 
     // to save/init
-    uint64_t m_seed = 9223521712174600777ull;
+    uint64_t m_seed = c_defaultSeed;
+    uint64_t m_powerOnSeed = c_defaultSeed;
     uint8_t m_dataFIFO[2352] = {0};
     uint32_t m_dataFIFOIndex = 0;
     uint32_t m_dataFIFOSize = 0;
@@ -119,6 +133,7 @@ class CDRom {
     bool m_invalidLocL = false;
     // Set once a data sector has been read since the last seek; m_currentPosition is then one past it.
     bool m_sectorReadSinceSeek = false;
+    bool m_scexCountersReset = false;
     bool m_dataRequested = false;
     bool m_subheaderFilter = false;
     bool m_realtime = false;

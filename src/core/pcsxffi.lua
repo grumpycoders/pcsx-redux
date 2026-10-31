@@ -57,6 +57,7 @@ uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
 void setPC(uint32_t pc);
+void setGPR(unsigned index, uint32_t value);
 uint8_t** getReadLUT();
 uint8_t** getWriteLUT();
 Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label);
@@ -97,6 +98,15 @@ typedef struct {
 
 LuaScreenShot takeScreenShot();
 double getGuestFPS();
+void setGPULogging(bool enabled, bool overdrawStats);
+typedef struct {
+    bool valid;
+    uint64_t total;
+    uint32_t pixels, max;
+    uint32_t buckets[5];
+} LuaOverdrawStats;
+LuaOverdrawStats getOverdrawStats(bool read);
+uint64_t getOverdrawSum(bool read, int x, int y, int w, int h);
 void startGPUDump(LuaFile*);
 void stopGPUDump();
 bool isGPUDumpArmed();
@@ -107,8 +117,17 @@ void unloadGPUDumpPlayer();
 bool stepGPUDumpPlayer();
 void rewindGPUDumpPlayer();
 uint64_t getGPUDumpPlayerFrame();
+void setGPUDumpPlayerLogging(bool enabled);
+uint32_t getGPUDumpPlayerLoggedCount();
 LuaSlice* getGPUDumpPlayerVRAM();
 LuaSlice* getVRAM();
+void setSPULoggerEnabled(bool);
+bool isSPULoggerEnabled();
+void clearSPULogger();
+uint64_t getSPULoggerEventCount();
+bool prepareSPULoggerSPD(uint32_t tickRate, bool fullRam);
+bool writeSPULoggerSPD(LuaFile*);
+const char* getSPULoggerExportError();
 
 LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
@@ -229,6 +248,13 @@ PCSX = {
     getRomPtr = function() return C.getRomPtr() end,
     getScratchPtr = function() return C.getScratchPtr() end,
     getRegisters = function() return C.getRegisters() end,
+    -- Unlike a store into getRegisters().GPR, also drops a load still pending for that register.
+    setGPR = function(index, value)
+        if type(index) ~= 'number' or index < 0 or index > 33 or index % 1 ~= 0 then
+            error 'PCSX.setGPR needs a register index between 0 and 33'
+        end
+        C.setGPR(index, value)
+    end,
     getReadLUT = function() return C.getReadLUT() end,
     getWriteLUT = function() return C.getWriteLUT() end,
     addBreakpoint = addBreakpoint,
@@ -276,6 +302,29 @@ PCSX = {
             f()
         end
     end,
+    SPU = {
+        Logger = {
+            enable = function() C.setSPULoggerEnabled(true) end,
+            disable = function() C.setSPULoggerEnabled(false) end,
+            isEnabled = function() return C.isSPULoggerEnabled() end,
+            clear = function() C.clearSPULogger() end,
+            getEventCount = function() return tonumber(C.getSPULoggerEventCount()) end,
+            -- Writes the captured register stream as an SPU dump. tickRate is 16.16 Hz and
+            -- defaults to 1/16th of the hblank rate. Returns true, or false and the reason.
+            exportSPD = function(file, tickRate, fullRam)
+                local isName = type(file) == 'string'
+                if not isName and (type(file) ~= 'table' or file._type ~= 'File') then
+                    error('exportSPD: requires a File or a filename')
+                end
+                if not C.prepareSPULoggerSPD(tickRate or 0, fullRam and true or false) then
+                    return false, ffi.string(C.getSPULoggerExportError())
+                end
+                if isName then file = Support.File.open(file, 'TRUNCATE') end
+                if C.writeSPULoggerSPD(file._wrapper) then return true end
+                return false, ffi.string(C.getSPULoggerExportError())
+            end,
+        },
+    },
     GPU = {
         takeScreenShot = function()
             local ss = C.takeScreenShot()
@@ -287,6 +336,20 @@ PCSX = {
             }
         end,
         getGuestFPS = function() return C.getGuestFPS() end,
+        setLogging = function(enabled, overdrawStats) C.setGPULogging(enabled, overdrawStats == true) end,
+        getOverdrawSum = function(read, x, y, w, h) return tonumber(C.getOverdrawSum(read == true, x, y, w, h)) end,
+        getOverdrawStats = function(read)
+            local s = C.getOverdrawStats(read == true)
+            if not s.valid then return nil end
+            local total = tonumber(s.total)
+            return {
+                total = total,
+                pixels = s.pixels,
+                max = s.max,
+                mean = s.pixels > 0 and total / s.pixels or 0,
+                buckets = { s.buckets[0], s.buckets[1], s.buckets[2], s.buckets[3], s.buckets[4] },
+            }
+        end,
         getVRAM = function() return Support.File._createSliceWrapper(C.getVRAM()) end,
         startDump = function(file)
             if type(file) == 'string' then file = Support.File.open(file, 'TRUNCATE') end
@@ -311,6 +374,9 @@ PCSX = {
             step = function() return C.stepGPUDumpPlayer() end,
             rewind = function() C.rewindGPUDumpPlayer() end,
             getFrame = function() return tonumber(C.getGPUDumpPlayerFrame()) end,
+            -- The player's own GPU logger, holding the commands of the last frame played.
+            setLogging = function(enabled) C.setGPUDumpPlayerLogging(enabled) end,
+            getLoggedCount = function() return C.getGPUDumpPlayerLoggedCount() end,
             getVRAM = function() return Support.File._createSliceWrapper(C.getGPUDumpPlayerVRAM()) end,
         },
     },

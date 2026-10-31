@@ -55,7 +55,6 @@
 #include "core/screenshot.h"
 #include "core/sio1.h"
 #include "core/sstate.h"
-#include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui-platform.h"
 #include "gui/gui.h"
@@ -174,9 +173,13 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
       m_openArchiveDialog(l_("Open Archive"), favorites),
       m_selectBiosDialog(l_("Select BIOS"), favorites),
       m_selectEXP1Dialog(l_("Select EXP1"), favorites),
-      m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); }),
+      m_isoBrowser(
+          settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); },
+          [this](const std::string& name, IO<File> file) { m_dalos.addSource(name, file); }),
       m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites),
-      m_gpuDump(settings.get<ShowGPUDump>().value, favorites) {
+      m_gpuDump(settings.get<ShowGPUDump>().value, favorites),
+      m_spuLoggerWidget(settings.get<ShowSPULogger>().value, settings.get<SPULoggerEnabled>().value, favorites),
+      m_spuSamplesWidget(settings.get<ShowSPUSamples>().value, favorites) {
     assert(g_gui == nullptr);
     g_gui = this;
 }
@@ -204,6 +207,25 @@ static SDL_Window* getSDLWindowFromImGuiViewport(ImGuiViewport* viewport) {
 
 PCSX::GUI* PCSX::g_gui = nullptr;
 
+// Sink for ThorVG's TVGERR / TVGLOG, wired in third_party/thorvg-config/config.h.
+void pcsxThorVGLog(bool error, const char* tag, const char* file, int line, const char* fmt, ...) {
+    va_list args, copy;
+    va_start(args, fmt);
+    va_copy(copy, args);
+    int len = vsnprintf(nullptr, 0, fmt, copy);
+    va_end(copy);
+    std::string buffer(len > 0 ? len : 0, '\0');
+    if (len > 0) vsnprintf(buffer.data(), len + 1, fmt, args);
+    va_end(args);
+    if (!PCSX::g_system) {
+        fprintf(stderr, "[ThorVG %s] %s (%s:%d): %s\n", error ? "error" : "log", tag, file, line, buffer.c_str());
+        return;
+    }
+    auto base = std::filesystem::path(file).filename().string();
+    PCSX::g_system->log(PCSX::LogClass::UI, "[ThorVG %s] %s (%s:%d): %s\n", error ? "error" : "log", tag, base, line,
+                        buffer);
+}
+
 void PCSX::GUI::setFullscreen(bool fullscreen) {
     m_fullscreen = fullscreen;
     if (fullscreen) {
@@ -229,39 +251,7 @@ void PCSX::GUI::setRawMouseMotion() {
 
 void LoadImguiBindings(lua_State* lState);
 
-ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine,
-                            bool isSymbolsFont) {
-    if (!ranges) ranges = io.Fonts->GetGlyphRangesDefault();
-
-    const System::Range knownRange = System::Range(reinterpret_cast<uintptr_t>(ranges));
-    if (knownRange == System::Range::KOREAN) ranges = io.Fonts->GetGlyphRangesKorean();
-    if (knownRange == System::Range::JAPANESE) ranges = io.Fonts->GetGlyphRangesJapanese();
-    if (knownRange == System::Range::CHINESE_FULL) ranges = io.Fonts->GetGlyphRangesChineseFull();
-    if (knownRange == System::Range::CHINESE_SIMPLIFIED) ranges = io.Fonts->GetGlyphRangesChineseSimplifiedCommon();
-    if (knownRange == System::Range::CYRILLIC) ranges = io.Fonts->GetGlyphRangesCyrillic();
-    if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
-    if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
-
-    if (isSymbolsFont) {
-        for (unsigned i = 0; ranges[i] != 0; i++) {
-            m_baseFontRanges.push_back(ranges[i]);
-        }
-
-        m_baseFontRanges.push_back(0x2190);  // ←: U+2190   ↑: U+2191
-        m_baseFontRanges.push_back(0x2193);  // →: U+2192   ↓: U+2193
-        m_baseFontRanges.push_back(0x2573);  // ╳: U+2573
-        m_baseFontRanges.push_back(0x2573);
-        m_baseFontRanges.push_back(0x25a1);  // □: U+25A1
-        m_baseFontRanges.push_back(0x25a1);
-        m_baseFontRanges.push_back(0x25b3);  // △: U+25B3
-        m_baseFontRanges.push_back(0x25b3);
-        m_baseFontRanges.push_back(0x25ef);  // ◯: U+25EF
-        m_baseFontRanges.push_back(0x25ef);
-
-        m_baseFontRanges.push_back(0);
-        ranges = m_baseFontRanges.data();
-    }
-
+ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, bool combine) {
     decltype(s_imguiUserErrorFunctor) backup = [](const char*) {};
     std::swap(backup, s_imguiUserErrorFunctor);
     ImFontConfig cfg;
@@ -270,9 +260,8 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     ImFont* ret = nullptr;
     std::filesystem::path path = name;
     g_system->findResource(
-        [&ret, fonts = io.Fonts, size, &cfg, ranges](const std::filesystem::path& filename) mutable {
-            ret = fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(filename.u8string().c_str()), size, &cfg,
-                                            ranges);
+        [&ret, fonts = io.Fonts, size, &cfg](const std::filesystem::path& filename) mutable {
+            ret = fonts->AddFontFromFileTTF(reinterpret_cast<const char*>(filename.u8string().c_str()), size, &cfg);
             return ret != nullptr;
         },
         path, "fonts", std::filesystem::path("third_party") / "noto");
@@ -555,6 +544,10 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         SDL_GL_SetSwapInterval(m_idleSwapInterval);
         SDL_SetWindowRelativeMouseMode(m_window, false);
     });
+    // A hard reset clears VRAM, but while paused nothing presents it, so the last frame would linger.
+    m_listener.listen<Events::ExecutionFlow::Reset>([this](const auto& event) {
+        if (event.hard) m_presentAfterHardReset = true;
+    });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
         m_enableSplashScreen = false;
 
@@ -801,6 +794,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.title = l_("Hardware Registers");
     m_biosEditor.title = []() { return "BIOS"; };
     m_vramEditor.title = l_("VRAM");
+    m_spuRamEditor.title = l_("SPU RAM");
     auto makeExportFn = [this](MemoryEditorWrapper& wrapper, std::string postfixName) {
         return [this, &wrapper, postfixName](size_t len, size_t base_addr) {
             std::filesystem::path writeFilepath =
@@ -827,6 +821,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.editor.ExportFn = makeExportFn(m_hwrEditor, "hwr");
     m_biosEditor.editor.ExportFn = makeExportFn(m_biosEditor, "bios");
     m_vramEditor.editor.ExportFn = makeExportFn(m_vramEditor, "vram");
+    m_spuRamEditor.editor.ExportFn = makeExportFn(m_spuRamEditor, "spuram");
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
@@ -1008,7 +1003,7 @@ void PCSX::GUI::startFrame() {
                 break;
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP: {
-                const int action = event.type == SDL_EVENT_KEY_DOWN ? 1 : 0;
+                const int action = event.type == SDL_EVENT_KEY_UP ? 0 : event.key.repeat ? 2 : 1;
                 g_system->m_eventBus->signal(Events::Keyboard{static_cast<int>(event.key.key),
                                                               static_cast<int>(event.key.scancode), action,
                                                               static_cast<int>(event.key.mod)});
@@ -1061,7 +1056,6 @@ void PCSX::GUI::startFrame() {
 
     if (m_reloadFonts) {
         m_reloadFonts = false;
-        m_baseFontRanges.clear();
         auto scales = m_allScales;
         if (scales.empty()) scales.emplace(1.0f);
 
@@ -1079,15 +1073,17 @@ void PCSX::GUI::startFrame() {
         io.Fonts->AddFontDefault();
         for (auto& scale : scales) {
             m_mainFonts[scale] = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value * scale,
-                                          io, g_system->getLocaleRanges(), false, false);
-            for (auto e : g_system->getLocaleExtra()) {
-                loadFont(e.first, settings.get<MainFontSize>().value * scale, io, e.second, true, false);
+                                          io, false);
+            for (auto& e : g_system->getLocaleExtra()) {
+                loadFont(e, settings.get<MainFontSize>().value * scale, io, true);
             }
             // try loading the japanese font for memory card manager
             m_hasJapanese = loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MainFontSize>().value * scale,
-                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true, true);
+                                     io, true);
             m_monoFonts[scale] = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale,
-                                          io, nullptr, false, false);
+                                          io, false);
+            // NotoMono has no U+2713 (cester's pass mark) and no CJK; merge them in from the japanese font.
+            loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MonoFontSize>().value * scale, io, true);
         }
         // Pick the font matching the current DPI scale as the default; in
         // v1.92 ImGui draws frames at Style.FontSizeBase unless overridden by
@@ -1474,6 +1470,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("PIO Cartridge"), nullptr, &m_pioCart.m_show);
+                ImGui::MenuItem(_("Network"), nullptr, &m_network.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
                 ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
@@ -1512,6 +1509,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                         m_hwrEditor.MenuItem();
                         m_biosEditor.MenuItem();
                         m_vramEditor.MenuItem();
+                        m_spuRamEditor.MenuItem();
                         ImGui::EndMenu();
                     }
                     ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
@@ -1559,6 +1557,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 }
                 if (ImGui::BeginMenu(_("SPU"))) {
                     ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
+                    ImGui::MenuItem(_("Show SPU logger"), nullptr, &m_spuLoggerWidget.m_show);
+                    ImGui::MenuItem(_("Show SPU samples"), nullptr, &m_spuSamplesWidget.m_show);
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show Network"), nullptr, &m_network.m_show);
@@ -1573,6 +1573,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show PSYQo heap viewer"), nullptr, &m_heapViewer.m_show);
+                ImGui::MenuItem(_("Show allocator tracker"), nullptr, &m_allocTrackerViewer.m_show);
                 ImGui::Separator();
                 if (ImGui::BeginMenu(_("Kernel"))) {
                     ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
@@ -1591,6 +1592,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::EndMenu();
             }
             ImGui::Separator();
+            if (ImGui::BeginMenu(_("Dalos"))) {
+                ImGui::MenuItem(_("Show Canvas"), nullptr, &m_dalos.m_show);
+                ImGui::EndMenu();
+            }
             if (ImGui::BeginMenu(_("Help"))) {
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::MenuItem(_("Show ImPlot Demo"), nullptr, &m_showImPlotDemo);
@@ -1786,6 +1791,14 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             m_biosEditor.draw(memFile, 512 * 1024);
         }
         counter++;
+        if (m_spuRamEditor.m_show) {
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
+            // Null until the SPU has been init'd; the editor would otherwise read off a wild pointer.
+            auto* spuRam = g_emulator->m_spu->getSpuRam();
+            if (spuRam) m_spuRamEditor.draw(spuRam, SPUInterface::c_spuRamSize);
+        }
+        counter++;
         if (m_vramEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
@@ -1889,8 +1902,13 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_isoBrowser.m_show) {
         m_isoBrowser.draw(g_emulator->m_cdrom.get(), _("ISO Browser"));
     }
+    m_isoBrowser.drawChildren();
 
     if (m_network.m_show) changed |= m_network.draw(this, _("Network"));
+    if (m_dalos.m_show) {
+        m_dalos.draw(_("Dalos Canvas"));
+    }
+    m_dalos.fileViewers().draw();
 
     if (m_showCfg) changed |= configure();
     if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();
@@ -1899,9 +1917,16 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
     if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
-    if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"));
+    if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"), !g_system->running());
     if (m_gpuDump.m_show) m_gpuDump.draw(_("GPU Dump"));
+    // Pushed unconditionally: capture follows the setting, not whether the window is open.
+    m_spuLoggerWidget.syncEnabled(g_emulator->m_spuLogger.get());
+    if (m_spuLoggerWidget.m_show) m_spuLoggerWidget.draw(g_emulator->m_spuLogger.get(), _("SPU Logger"));
+    if (m_spuSamplesWidget.m_show) {
+        m_spuSamplesWidget.draw(g_emulator->m_spuLogger.get(), g_emulator->m_spu->getSpuRam(), _("SPU Samples"));
+    }
     if (m_heapViewer.m_show) m_heapViewer.draw(g_emulator->m_mem.get(), _("PSYQo Heap Viewer"));
+    if (m_allocTrackerViewer.m_show) m_allocTrackerViewer.draw(_("Allocator Tracker"));
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
@@ -1968,8 +1993,8 @@ their TV set to match the aspect ratio of the game.)"));
 
 If you enable the auto update option, it will check for new updates
 on startup. No personal data nor identifiable token is sent for this
-process, but Microsoft might still keep and record information such
-as your IP address.
+process. The update server is run by the PCSX-Redux project behind
+Cloudflare, which can see your IP address like any CDN.
 
 If an update is available, you will get prompted to download and
 install it. You can still download versions of PCSX-Redux as usual
@@ -2332,6 +2357,13 @@ interval to 0 to disable.)"));
 which may include additional checks.
 Also will make the boot time substantially
 faster by not displaying the logo.)"));
+        changed |=
+            ImGui::Checkbox(_("Randomize CD-ROM timings"), &settings.get<Emulator::SettingCDRomEntropySeed>().value);
+        ImGuiHelpers::ShowHelpMarker(_(R"(The CD-ROM drive timings carry a small
+amount of jitter, like a real drive. By default
+it is the same on every run, so a session can be
+replayed exactly. Enabling this picks a different
+sequence at each power-on.)"));
         auto bios = settings.get<Emulator::SettingBios>().string();
         ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())),
                          bios.length() + 1, ImGuiInputTextFlags_ReadOnly);
@@ -2347,8 +2379,6 @@ faster by not displaying the logo.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticeable extent.)"));
-        ImGui::TextUnformatted(_("Network servers and clients now live in their own window."));
-        if (ImGui::Button(_("Open Network settings"))) m_network.m_show = true;
     }
     ImGui::End();
 
@@ -2481,7 +2511,7 @@ bool PCSX::GUI::about() {
                     ImGui::TextUnformatted(_("Changeset:"));
                     ImGui::SameLine();
                     if (ImGui::SmallButton(version.changeset.c_str())) {
-                        openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
+                        openUrl(fmt::format("https://github.com/pcsx-redux/pcsx-redux/commit/{}", version.changeset));
                     }
                     std::tm tm = *std::localtime(&version.timestamp);
                     std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
@@ -2570,6 +2600,11 @@ void PCSX::GUI::update(bool vsync) {
     glDisable(GL_SCISSOR_TEST);
     endFrame();
     startFrame();
+    if (m_presentAfterHardReset) {
+        m_presentAfterHardReset = false;
+        g_emulator->m_gpu->presentFromGui();
+        flip();
+    }
     // At all times, either the emulated GPU core or the GUI have full control of the host GPU & the GL context
     // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
     // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.
@@ -3006,7 +3041,8 @@ void PCSX::GUI::saveScreenShot() {
     if (success) {
         auto successMsg = fmt::format(f_("Screenshot saved to {}\n"), path.string());
         g_system->log(LogClass::UI, std::move(successMsg));
+        addNotice(fmt::format(f_("Screenshot saved to {}"), path.filename().string()), NoticeKind::Info);
     } else {
-        addNotification(_("Failed to save screenshot"));
+        addNotice(_("Failed to save screenshot"), NoticeKind::Error);
     }
 }

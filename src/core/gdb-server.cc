@@ -142,6 +142,123 @@ void PCSX::GdbClient::close() {
     });
 }
 
+PCSX::GdbClient::~GdbClient() {
+    if (m_reverse) {
+        g_emulator->m_debug->stopReplay();
+        g_emulator->suppressRewindCapture(false);
+    }
+    m_breakpoints.destroyAll();
+}
+
+void PCSX::GdbClient::startReverse(bool isContinue) {
+    auto& emuSettings = g_emulator->settings;
+    if (!emuSettings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+        g_system->printf(_("GDB server: reverse execution needs the debugger (use -debugger)\n"));
+        write("E02");
+        return;
+    }
+    if (g_emulator->m_cpu->isDynarec()) {
+        g_system->printf(_("GDB server: reverse execution needs the interpreter (use -interpreter)\n"));
+        write("E02");
+        return;
+    }
+    if (g_system->running()) g_system->pause();
+    const uint64_t now = g_emulator->m_cpu->m_regs.cycle;
+    size_t snapshot = g_emulator->rewindSnapshotCount();
+    while ((snapshot > 0) && (g_emulator->rewindSnapshotCycle(snapshot - 1) >= now)) snapshot--;
+    if (snapshot == 0) {
+        // Snapshots taken by hand (Lua's createRewindState()) are enough; with an empty ring that
+        // isn't capturing, there will never be a past to go back to.
+        if ((g_emulator->rewindSnapshotCount() == 0) &&
+            (emuSettings.get<Emulator::SettingRewindInterval>().value == 0)) {
+            g_system->printf(
+                _("GDB server: reverse execution replays from the rewind ring, which is off (RewindInterval is 0)\n"));
+            write("E01");
+        } else {
+            write("T05replaylog:begin;");
+        }
+        return;
+    }
+    snapshot--;
+    m_reverse = ReverseJob{.isContinue = isContinue, .now = now, .snapshot = snapshot};
+    g_emulator->suppressRewindCapture(true);
+    replayFrom(snapshot, now);
+}
+
+void PCSX::GdbClient::replayFrom(size_t snapshot, uint64_t stopAt) {
+    std::weak_ptr<GdbClient*> self = m_self;
+    // The Pause that ends a replay is signalled from inside the emulation, so the restore has
+    // to wait for the main loop.
+    g_system->scheduleRestore([self, snapshot, stopAt]() {
+        auto client = self.lock();
+        if (!client) return;
+        g_emulator->restoreRewindSnapshot(snapshot);
+        if (g_emulator->m_debug->startReplay(stopAt)) {
+            g_system->resume();
+        } else {
+            (*client)->onReplayPaused();
+        }
+    });
+}
+
+void PCSX::GdbClient::land(uint64_t target) {
+    m_reverse->landing = true;
+    m_reverse->target = target;
+    replayFrom(m_reverse->snapshot, target);
+}
+
+void PCSX::GdbClient::onReplayPaused() {
+    auto replay = g_emulator->m_debug->stopReplay();
+    auto& job = *m_reverse;
+    if (!replay || !replay->reached) {
+        // Interrupted, or an exception paused it. Wherever it is, it is a point of the past.
+        g_system->printf(_("GDB server: replay from snapshot %zu (cycle %llu) paused early at pc %08x\n"), job.snapshot,
+                         static_cast<unsigned long long>(g_emulator->rewindSnapshotCycle(job.snapshot)),
+                         static_cast<uint32_t>(g_emulator->m_cpu->m_regs.pc));
+        finishReverse("T05");
+        return;
+    }
+    const uint64_t reached = *replay->reached;
+    // The first replay ends on the boundary the command was issued at, and a landing on a
+    // boundary the scan saw. Anything else means the replay is not following the same path.
+    const bool firstScan = !job.landing && !job.scanned;
+    if ((job.landing && (reached != job.target)) || (firstScan && (reached != job.now))) {
+        g_system->printf(_("GDB server: replay diverged, expected to stop at cycle %llu, stopped at %llu\n"),
+                         static_cast<unsigned long long>(job.landing ? job.target : job.now),
+                         static_cast<unsigned long long>(reached));
+        finishReverse("E03");
+        return;
+    }
+    if (job.landing) {
+        finishReverse(job.atEdge ? "T05replaylog:begin;" : "T05");
+        return;
+    }
+    job.scanned = true;
+    if (!job.isContinue) {
+        land(replay->lastBoundary);
+        return;
+    }
+    if (replay->lastHit) {
+        land(*replay->lastHit);
+        return;
+    }
+    if (job.snapshot == 0) {
+        job.atEdge = true;
+        land(g_emulator->rewindSnapshotCycle(0));
+        return;
+    }
+    job.snapshot--;
+    replayFrom(job.snapshot, g_emulator->rewindSnapshotCycle(job.snapshot + 1));
+}
+
+void PCSX::GdbClient::finishReverse(const char* reply) {
+    m_reverse.reset();
+    g_emulator->suppressRewindCapture(false);
+    // The snapshots past this point belong to a future that is going to be executed again.
+    g_emulator->dropRewindSnapshotsAfter(g_emulator->m_cpu->m_regs.cycle);
+    write(std::string(reply));
+}
+
 PCSX::GdbClient::GdbClient(IO<File> connection, uv_loop_t* loop) : m_listener(g_system->m_eventBus) {
     m_loop = loop;
     m_connection = connection;
@@ -150,6 +267,10 @@ PCSX::GdbClient::GdbClient(IO<File> connection, uv_loop_t* loop) : m_listener(g_
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) { m_exception = false; });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         m_exception = event.exception;
+        if (m_reverse) {
+            onReplayPaused();
+            return;
+        }
         if (m_waitingForShell) {
             // This is a bit of a problem. If there's any remaining
             // breakpoint, we just blow past them. I'm not sure
@@ -279,6 +400,18 @@ static std::pair<uint32_t, bool> parseHexNumber(const char* str) {
 }
 
 static std::pair<uint32_t, bool> parseHexNumber(const std::string& str) { return parseHexNumber(str.c_str()); }
+
+// P<n>=<value>: n in hex with no padding, value as 8 hex digits in target byte order
+static bool parseRegisterWrite(const std::string& cmd, uint32_t& n, uint32_t& value) {
+    auto equal = cmd.find('=');
+    if ((equal == std::string::npos) || (equal < 2) || (cmd.length() != equal + 9)) return false;
+    auto [parsedN, validN] = parseHexNumber(cmd.substr(1, equal - 1));
+    auto [parsedValue, validValue] = parseHexNumber(cmd.substr(equal + 1));
+    if (!validN || !validValue || (parsedN >= 72)) return false;
+    n = parsedN;
+    value = parsedValue;
+    return true;
+}
 
 static const std::string memoryMap = R"(<?xml version="1.0"?>
 <memory-map>
@@ -498,7 +631,7 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
             ((value & 0x000000ff) << 24);
     auto& regs = g_emulator->m_cpu->m_regs;
     if (n < 32) {
-        regs.GPR.r[n] = value;
+        g_emulator->m_cpu->setGPR(n, value);
     } else if (n == 32) {
         regs.CP0.n.Status = value;
     } else if (n == 33) {
@@ -536,8 +669,8 @@ void PCSX::GdbClient::processCommand() {
         } else {  // we may need one for 02 ? SIGINT
             write("S05");
         }
-    } else if (m_cmd == "D") {
-        // detach
+    } else if ((m_cmd == "D") || StringsHelpers::startsWith(m_cmd, "D;")) {
+        // detach, with a pid after the semicolon when multiprocess was negotiated
         write("OK");
         close();
     } else if (m_cmd == "qC") {
@@ -556,28 +689,18 @@ void PCSX::GdbClient::processCommand() {
         for (int i = 0; i < 72; i++) stream(dumpOneRegister(i));
         stopStream();
     } else if (StringsHelpers::startsWith(m_cmd, "p")) {
-        if (m_cmd.size() != 3) {
+        // read one register: p<n>, with n in hex and no padding, so p4 as well as p25
+        auto [n, valid] = parseHexNumber(m_cmd.substr(1));
+        if ((m_cmd.length() < 2) || !valid || (n >= 72)) {
             write("E00");
-            close();
             return;
         }
-        uint8_t n = fromHexChar(m_cmd[1]);
-        n <<= 4;
-        n |= fromHexChar(m_cmd[2]);
         write(dumpOneRegister(n));
     } else if (StringsHelpers::startsWith(m_cmd, "P")) {
-        if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
+        // write one register
+        uint32_t n, value;
+        if (!parseRegisterWrite(m_cmd, n, value)) {
             write("E00");
-            close();
-            return;
-        }
-        uint8_t n = fromHexChar(m_cmd[1]);
-        n <<= 4;
-        n |= fromHexChar(m_cmd[2]);
-        auto [value, valid] = parseHexNumber(m_cmd.substr(4));
-        if (!valid) {
-            write("E00");
-            close();
             return;
         }
         setOneRegister(n, value);
@@ -714,6 +837,10 @@ void PCSX::GdbClient::processCommand() {
         if (g_system->running()) g_system->pause();
         m_waitingForTrap = true;
         g_emulator->m_debug->stepIn();
+    } else if (m_cmd == "bs") {
+        startReverse(false);
+    } else if (m_cmd == "bc") {
+        startReverse(true);
     } else if (m_cmd == "Hc0") {
         // thread stuff
         write("OK");
@@ -731,7 +858,7 @@ void PCSX::GdbClient::processCommand() {
                 m_multiprocess = true;
             }
         }
-        std::string answer = "PacketSize=47ff;qXfer:threads:read+;QStartNoAckMode+";
+        std::string answer = "PacketSize=47ff;qXfer:threads:read+;QStartNoAckMode+;ReverseStep+;ReverseContinue+";
         if (m_multiprocess) {
             answer += ";multiprocess+";
         }

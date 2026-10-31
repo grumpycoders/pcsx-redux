@@ -13,7 +13,7 @@ PACKAGES := capstone freetype2 libavcodec libavformat libavutil libswresample li
 OPTIONAL_PACKAGES := md4c fmt libllhttp libluv liburiparser
 OPTIONAL_LIBRARIES := multipart ucl
 
-LOCALES := el es_ES fr ja pt_BR sv uk zh_CN
+LOCALES := de el es_ES fr ja pt_BR sv uk zh_CN
 
 # One sentinel per submodule the build globs sources from. Checking imgui alone let a checkout
 # that had imgui but not implot report submodules present and then fail at compile time on a
@@ -208,8 +208,8 @@ ifeq ($(UNAME_M),arm64)
         CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
-SUPPORT_SRCS := src/support/container-file.cc src/support/cpu-features.cc src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
-SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/dct.cc src/supportpsx/iec-60908b.cc src/supportpsx/iso9660-builder.cc src/supportpsx/ps1-packer.cc src/supportpsx/psyq-obj.cc src/supportpsx/ucl-utils.cc
+SUPPORT_SRCS := src/support/container-file.cc src/support/cpu-features.cc src/support/file.cc src/support/md5.cc src/support/mem4g.cc src/support/zfile.cc
+SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/dct.cc src/supportpsx/iec-60908b.cc src/supportpsx/iso9660-builder.cc src/supportpsx/ps1-packer.cc src/supportpsx/psyq-obj.cc src/supportpsx/sf2.cc src/supportpsx/spusample.cc src/supportpsx/ucl-utils.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
@@ -219,7 +219,7 @@ LIBS := third_party/luajit/src/libluajit.a
 # lives in src/core; it is linked in on its own, without the rest of core.
 TOOL_EXTRA_OBJECTS_mdec := objs/$(BUILD)/src/core/mdec-decoder.o
 
-TOOLS = authoring exe2elf exe2exe exe2iso mdec midi2psm midi2spd modconv ps1-packer psyq-obj-parser
+TOOLS = authoring exe2elf exe2exe exe2iso exe2sys573 mdec midi2psm midi2spd modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
 

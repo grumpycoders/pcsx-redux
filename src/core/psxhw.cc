@@ -20,10 +20,13 @@
 #include "core/psxhw.h"
 
 #include <stdint.h>
+#include <string.h>
 
+#include "core/alloc-tracker.h"
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gpu.h"
+#include "core/guest-command.h"
 #include "core/logger.h"
 #include "core/mdec.h"
 #include "core/pio-cart.h"
@@ -87,6 +90,10 @@ uint8_t PCSX::HW::read8(uint32_t add) {
         case 0x1f80105a:  // control register
             hard = g_emulator->m_sio1->readCtrl8();
             SIO1_LOG("SIO1.CTRL read8 %x; ret = %x\n", add & 0xf, hard);
+            break;
+        case 0x1f80105c:  // guizmo register
+            hard = g_emulator->m_sio1->readGuizmo8();
+            SIO1_LOG("SIO1.GUIZMO read8 %x; ret = %x\n", add & 0xf, hard);
             break;
         case 0x1f80105e:  // baudrate register
             hard = g_emulator->m_sio1->readBaud8();
@@ -184,6 +191,10 @@ uint16_t PCSX::HW::read16(uint32_t add) {
         case 0x1f80105a:  // control register
             hard = g_emulator->m_sio1->readCtrl16();
             SIO1_LOG("SIO1.CTRL read16 %x; ret = %x\n", add & 0xf, hard);
+            break;
+        case 0x1f80105c:  // guizmo register
+            hard = g_emulator->m_sio1->readGuizmo16();
+            SIO1_LOG("SIO1.GUIZMO read16 %x; ret = %x\n", add & 0xf, hard);
             break;
         case 0x1f80105e:  // baudrate register
             hard = g_emulator->m_sio1->readBaud16();
@@ -288,6 +299,10 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             // Log command below is overly spammy
             // SIO1_LOG("SIO1.STAT read32 ;ret = %x\n", hard);
             break;
+        case 0x1f80105c:  // guizmo register
+            hard = g_emulator->m_sio1->readGuizmo32();
+            SIO1_LOG("SIO1.GUIZMO read32 %x; ret = %x\n", add & 0xf, hard);
+            break;
         case 0x1f801060: {
             hard = g_emulator->m_mem->readHardwareRegister<0x1060>();
             PSXHW_LOG("RAM size read %x\n", hard);
@@ -308,7 +323,7 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             PSXHW_LOG("GPU DATA 32bit read %x\n", hard);
             break;
         case 0x1f801814:
-            hard = PCSX::g_emulator->m_gpu->readStatus();
+            hard = PCSX::g_emulator->m_gpu->readStatusFromBus();
             PSXHW_LOG("GPU STATUS 32bit read %x\n", hard);
             break;
 
@@ -430,10 +445,22 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             g_emulator->m_sio1->writeCtrl8(value);
             SIO1_LOG("SIO1.CTRL write8 %x; ret = %x\n", add & 0xf, value);
             break;
+        case 0x1f80105c:  // guizmo register
+            g_emulator->m_sio1->writeGuizmo(rawvalue);
+            SIO1_LOG("SIO1.GUIZMO write8 %x; ret = %x\n", add & 0xf, rawvalue);
+            return;
+        case 0x1f80105d:  // guizmo register again
+            g_emulator->m_sio1->writeGuizmo(((uint16_t)value) << 8);
+            SIO1_LOG("SIO1.GUIZMO write8 %x; ret = %x\n", add & 0xf, value);
+            return;
         case 0x1f80105e:  // baudrate register
-            g_emulator->m_sio1->writeBaud8(value);
+            g_emulator->m_sio1->writeBaud16(rawvalue);
+            SIO1_LOG("SIO1.Baud write8 %x; ret = %x\n", add & 0xf, rawvalue);
+            return;
+        case 0x1f80105f:  // baudrate register, upper 8 bits
+            g_emulator->m_sio1->writeBaud16(((uint16_t)value) << 8);
             SIO1_LOG("SIO1.Baud write8 %x; ret = %x\n", add & 0xf, value);
-            break;
+            return;
         case 0x1f801800:
             g_emulator->m_cdrom->write0(value);
             break;
@@ -487,8 +514,8 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             }
 
             if (addressInRegisterSpace(hwadd)) {
-                uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-                *ptr = SWAP_LEu32(rawvalue);
+                const uint32_t v = SWAP_LEu32(rawvalue);
+                memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
                 PSXHW_LOG("*Unknown 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
             } else {
                 g_emulator->m_mem->m_hard[hwadd & 0xffff] = value;
@@ -497,8 +524,8 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             return;
     }
     if (addressInRegisterSpace(hwadd)) {
-        uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-        *ptr = SWAP_LEu32(rawvalue);
+        const uint32_t v = SWAP_LEu32(rawvalue);
+        memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
         PSXHW_LOG("*Known 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
     } else {
         g_emulator->m_mem->m_hard[hwadd & 0xffff] = value;
@@ -547,10 +574,14 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             g_emulator->m_sio1->writeCtrl16(value);
             SIO1_LOG("SIO1.CTRL write16 %x, %x\n", add & 0xf, value);
             break;
+        case 0x1f80105c:  // guizmo register
+            g_emulator->m_sio1->writeGuizmo(value);
+            SIO1_LOG("SIO1.GUIZMO write16 %x, %x\n", add & 0xf, value);
+            return;
         case 0x1f80105e:  // baudrate register
             g_emulator->m_sio1->writeBaud16(value);
             SIO1_LOG("SIO1.BAUD write16 %x, %x\n", add & 0xf, value);
-            break;
+            return;
         case 0x1f801070:
             PSXHW_LOG("ISTAT 16bit(actually 32bit) write %x\n", rawvalue);
             if (g_emulator->settings.get<Emulator::SettingSpuIrq>()) g_emulator->m_mem->setIRQ(0x200);
@@ -610,8 +641,8 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             }
 
             if (addressInRegisterSpace(hwadd)) {
-                uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-                *ptr = SWAP_LEu32(rawvalue);
+                const uint32_t v = SWAP_LEu32(rawvalue);
+                memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
                 PSXHW_LOG("*Unknown 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
             } else {
                 uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -621,8 +652,8 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             return;
     }
     if (addressInRegisterSpace(hwadd)) {
-        uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-        *ptr = SWAP_LEu32(rawvalue);
+        const uint32_t v = SWAP_LEu32(rawvalue);
+        memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
         PSXHW_LOG("*Known 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
     } else {
         uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -641,7 +672,9 @@ inline void PCSX::HW::dma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     g_emulator->m_mdec->dma1(madr, bcr, chcr);
 }
 
-inline void PCSX::HW::dma2(uint32_t madr, uint32_t bcr, uint32_t chcr) { g_emulator->m_gpu->dma(madr, bcr, chcr); }
+inline bool PCSX::HW::dma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    return g_emulator->m_gpu->dma(madr, bcr, chcr);
+}
 
 inline void PCSX::HW::dma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PSXDMA_LOG("*** DMA3 CDROM *** %x addr = %x size = %x\n", chcr, madr, bcr);
@@ -667,6 +700,10 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             g_emulator->m_sio1->writeStat32(value);
             SIO1_LOG("SIO1.STAT write32 %x\n", value);
             break;
+        case 0x1f80105c:  // guizmo register
+            g_emulator->m_sio1->writeGuizmo(value);
+            SIO1_LOG("SIO1.GUIZMO write32 %x\n", value);
+            return;
         case 0x1f801060:
             PSXHW_LOG("RAM size write %x\n", value);
             g_emulator->m_mem->writeHardwareRegister<0x1060>(value);
@@ -834,6 +871,10 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         }
         case 0x1f8020a0: {
             g_emulator->m_mem->m_psyqoHeapMetadata = value;
+            break;
+        }
+        case 0x1f8020a4: {
+            GuestCommand::dispatch(value);
             break;
         }
         case 0x1f802094: {
