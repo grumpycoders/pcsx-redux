@@ -230,6 +230,11 @@ bool prepareSPULoggerSPD(uint32_t tickRate, bool fullRam) {
     return s_spuLoggerExportError.empty();
 }
 bool writeSPULoggerSPD(PCSX::LuaFFI::LuaFile* file) {
+    if (file->file->failed()) {
+        s_spuLoggerExportError = "unable to open the SPD file";
+        s_spuLoggerExport.clear();
+        return false;
+    }
     auto size = static_cast<ssize_t>(s_spuLoggerExport.size());
     bool ok = file->file->write(s_spuLoggerExport.data(), s_spuLoggerExport.size()) == size;
     if (!ok) s_spuLoggerExportError = "failed to write the whole SPD file";
