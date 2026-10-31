@@ -290,6 +290,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
     const uint64_t cycle = readerCycle();
     publishHorizon(cycle);
 
+    g_emulator->m_spuLogger->logRegWrite(r - 0xc00, val, regArea);
     regArea[(r - 0xc00) >> 1] = val;
 
     if (r >= 0x0c00 && r < 0x0d80) {

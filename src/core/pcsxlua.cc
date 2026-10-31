@@ -32,6 +32,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/spulogger.h"
 #include "core/sstate.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
@@ -213,6 +214,35 @@ PCSX::Slice* getGPUDumpPlayerVRAM() {
     if (!gpu) return new PCSX::Slice();
     return new PCSX::Slice(gpu->getVRAM(PCSX::GPU::Ownership::ACQUIRE));
 }
+void setSPULoggerEnabled(bool enabled) { PCSX::g_emulator->m_spuLogger->setEnabled(enabled); }
+bool isSPULoggerEnabled() { return PCSX::g_emulator->m_spuLogger->enabled(); }
+void clearSPULogger() { PCSX::g_emulator->m_spuLogger->clear(); }
+uint64_t getSPULoggerEventCount() { return PCSX::g_emulator->m_spuLogger->size(); }
+static std::string s_spuLoggerExportError;
+static std::vector<uint8_t> s_spuLoggerExport;
+// Two steps, so a filename is only opened, and truncated, once the capture is known to export.
+bool prepareSPULoggerSPD(uint32_t tickRate, bool fullRam) {
+    PCSX::SPD::Options options;
+    options.tickRate = tickRate;
+    options.fullRam = fullRam;
+    s_spuLoggerExport.clear();
+    s_spuLoggerExportError = PCSX::g_emulator->m_spuLogger->exportSPD(s_spuLoggerExport, options);
+    return s_spuLoggerExportError.empty();
+}
+bool writeSPULoggerSPD(PCSX::LuaFFI::LuaFile* file) {
+    if (file->file->failed()) {
+        s_spuLoggerExportError = "unable to open the SPD file";
+        s_spuLoggerExport.clear();
+        return false;
+    }
+    auto size = static_cast<ssize_t>(s_spuLoggerExport.size());
+    bool ok = file->file->write(s_spuLoggerExport.data(), s_spuLoggerExport.size()) == size;
+    if (!ok) s_spuLoggerExportError = "failed to write the whole SPD file";
+    s_spuLoggerExport.clear();
+    return ok;
+}
+const char* getSPULoggerExportError() { return s_spuLoggerExportError.c_str(); }
+
 PCSX::Slice* getVRAM() { return new PCSX::Slice(PCSX::g_emulator->m_gpu->getVRAM(PCSX::GPU::Ownership::ACQUIRE)); }
 
 PCSX::Slice* createSaveState() {
@@ -311,6 +341,13 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getOverdrawStats);
     REGISTER(L, getOverdrawSum);
     REGISTER(L, startGPUDump);
+    REGISTER(L, setSPULoggerEnabled);
+    REGISTER(L, isSPULoggerEnabled);
+    REGISTER(L, clearSPULogger);
+    REGISTER(L, getSPULoggerEventCount);
+    REGISTER(L, prepareSPULoggerSPD);
+    REGISTER(L, writeSPULoggerSPD);
+    REGISTER(L, getSPULoggerExportError);
     REGISTER(L, stopGPUDump);
     REGISTER(L, isGPUDumpArmed);
     REGISTER(L, isGPUDumpRecording);
