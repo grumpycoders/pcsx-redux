@@ -1221,15 +1221,16 @@ static void writeSamplePackets(FilePtr& f, const std::vector<SpuSample>& samples
     uint32_t totalAdpcm = 0;
     for (auto& s : samples) totalAdpcm += s.adpcmSize;
 
+    // The SPU DMA moves whole 64-byte blocks, so the payload is padded to a multiple of 64.
+    uint32_t paddedAdpcm = (totalAdpcm + 63) & ~63u;
     uint32_t baseAddr8 = SPU_RAM_BASE >> 3;
-    uint32_t totalWords = 1 + (totalAdpcm + 3) / 4;
+    uint32_t totalWords = 1 + paddedAdpcm / 4;
     f->write<uint32_t>((totalWords & 0x00FFFFFF) | (SPD_PKT_SAMPLE_DATA << 24));
     f->write<uint32_t>(baseAddr8);
     for (auto& s : samples) {
         f->write(s.adpcmData.data(), s.adpcmData.size());
     }
-    size_t pad = (4 - (totalAdpcm % 4)) % 4;
-    for (size_t i = 0; i < pad; i++) f->write<uint8_t>(0);
+    for (uint32_t i = totalAdpcm; i < paddedAdpcm; i++) f->write<uint8_t>(0);
 
     writeSampleDir(f, samples);
 }
