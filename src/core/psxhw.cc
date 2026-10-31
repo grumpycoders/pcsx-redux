@@ -574,7 +574,7 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             g_emulator->m_sio1->writeCtrl16(value);
             SIO1_LOG("SIO1.CTRL write16 %x, %x\n", add & 0xf, value);
             break;
-        case 0x1f80105c:  // guizo register
+        case 0x1f80105c:  // guizmo register
             g_emulator->m_sio1->writeGuizmo(value);
             SIO1_LOG("SIO1.GUIZMO write16 %x, %x\n", add & 0xf, value);
             return;
