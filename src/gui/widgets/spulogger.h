@@ -46,6 +46,7 @@ class SPULogger {
     bool &m_enabled;
 
   private:
+    void drawExportDialog(PCSX::SPULogger *logger);
     bool m_filterEnabled = false;
     // One bit per PCSX::SPULogger::Kind, all set: no filtering until asked.
     uint32_t m_kindMask = 0xffffffff;

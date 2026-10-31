@@ -109,112 +109,89 @@ uint16_t PCSX::SPD::filterValue(uint16_t reg, uint16_t value) {
     return value;
 }
 
-PCSX::SPD::Result PCSX::SPD::writeCapture(std::span<const uint16_t, 0x100> baseline, std::span<const RegWrite> writes,
-                                          const uint8_t* spuRam, const Options& options) {
-    Result result;
-    if (writes.empty()) {
-        result.error = "no register writes to export";
-        return result;
+namespace {
+
+struct Span {
+    uint32_t lo = PCSX::SPD::c_spuRamSize;
+    uint32_t hi = 0;
+};
+
+// Widens span to cover the sample each voice in mask starts from, out to that sample's end flag.
+void addKeyedSamples(Span& span, const std::array<uint16_t, 0x100>& regs, uint32_t mask, unsigned first,
+                     const uint8_t* spuRam) {
+    for (unsigned i = 0; i < 16; i++) {
+        unsigned voice = first + i;
+        if (!(mask & (1u << i)) || voice >= 24) continue;
+        uint32_t start = uint32_t(regs[(voice * 0x10 + 6) / 2]) << 3;
+        if (start < c_captureBuffers) continue;
+        span.lo = std::min(span.lo, start & ~0xfu);
+        span.hi = std::max(span.hi, sampleEnd(spuRam, start));
     }
+}
 
-    const uint32_t tickRate = options.tickRate ? options.tickRate : (c_ntscHblanks << 16) / 16;
-
-    // The sample span: everything any keyed voice starts from, out to that sample's end flag.
-    // Voices never keyed during the capture point at whatever the game left there, and walking
-    // those would drag arbitrary RAM into the file.
-    uint32_t lo = c_spuRamSize, hi = 0;
-    if (options.fullRam) {
-        lo = c_captureBuffers;
-        hi = c_spuRamSize;
-    } else {
-        std::array<uint16_t, 0x100> regs;
-        std::copy(baseline.begin(), baseline.end(), regs.begin());
-        auto keyed = [&](uint32_t mask, unsigned first) {
-            for (unsigned i = 0; i < 16; i++) {
-                if (!(mask & (1u << i))) continue;
-                unsigned voice = first + i;
-                if (voice >= 24) continue;
-                uint32_t start = uint32_t(regs[(voice * 0x10 + 6) / 2]) << 3;
-                if (start < c_captureBuffers) continue;
-                lo = std::min(lo, start & ~0xfu);
-                hi = std::max(hi, sampleEnd(spuRam, start));
-            }
-        };
-        for (auto& w : writes) {
-            if (w.reg >= 0x200) continue;
-            regs[w.reg / 2] = w.value;
-            if (w.reg == c_keyOnLo) keyed(w.value, 0);
-            if (w.reg == c_keyOnHi) keyed(w.value, 16);
-        }
+// The sample span: everything any keyed voice starts from, out to that sample's end flag.
+// Voices never keyed during the capture point at whatever the game left there, and walking
+// those would drag arbitrary RAM into the file.
+Span sampleSpan(std::span<const uint16_t, 0x100> baseline, std::span<const PCSX::SPD::RegWrite> writes,
+                const uint8_t* spuRam, bool fullRam) {
+    Span span;
+    if (fullRam) return {c_captureBuffers, PCSX::SPD::c_spuRamSize};
+    std::array<uint16_t, 0x100> regs;
+    std::copy(baseline.begin(), baseline.end(), regs.begin());
+    for (auto& w : writes) {
+        if (w.reg >= 0x200) continue;
+        regs[w.reg / 2] = w.value;
+        if (w.reg == c_keyOnLo) addKeyedSamples(span, regs, w.value, 0, spuRam);
+        if (w.reg == c_keyOnHi) addKeyedSamples(span, regs, w.value, 16, spuRam);
     }
+    return span;
+}
 
-    Stream stream;
-    stream.string(PKT_COMMENT, options.comment);
-    const uint32_t voiceCount = 24;
-    stream.packet(PKT_VOICE_COUNT, std::span(&voiceCount, 1));
-    stream.packet(PKT_TICK_RATE, std::span(&tickRate, 1));
+bool isRestored(uint16_t reg) {
+    if (PCSX::SPD::isDropped(reg)) return false;
+    if (reg < 0x180) return true;
+    return reg != c_spuCnt && (reg < c_keyOnLo || reg > c_keyOffHi);
+}
 
-    if (hi > lo) {
-        result.sampleBase = lo;
-        result.sampleSize = hi - lo;
-        std::vector<uint32_t> payload(1 + (hi - lo + 3) / 4, 0);
-        payload[0] = lo >> 3;
-        std::copy(spuRam + lo, spuRam + hi, reinterpret_cast<uint8_t*>(payload.data() + 1));
-        stream.packet(PKT_SAMPLE_DATA, payload);
-    }
-
-    const uint32_t order[] = {0, 0, 0};  // no loop, one entry, pattern 0
-    stream.packet(PKT_ORDER_TABLE, order);
-    const size_t patternHeader = stream.words().size() + 1;
-    const uint32_t placeholder = 0;
-    stream.packet(PKT_PATTERN_HEADER, std::span(&placeholder, 1));
-    stream.words()[patternHeader] = uint32_t(stream.bytes());
-
-    // State restoration: every voice's settings, then the globals with SPUCNT last. Key on/off
-    // are edge-triggered and stay out, so a voice already sounding when the capture started is
-    // silent until the game keys it again.
+// State restoration: every voice's settings, then the globals with SPUCNT last. Key on/off
+// are edge-triggered and stay out, so a voice already sounding when the capture started is
+// silent until the game keys it again.
+std::vector<uint32_t> restorationWrites(std::span<const uint16_t, 0x100> baseline) {
     std::vector<uint32_t> words;
-    for (uint16_t reg = 0; reg < 0x180; reg += 2) {
-        if (!isDropped(reg)) words.push_back(regWord(reg, baseline[reg / 2]));
+    for (uint16_t reg = 0; reg < 0x200; reg += 2) {
+        if (isRestored(reg)) words.push_back(regWord(reg, baseline[reg / 2]));
     }
-    for (uint16_t reg = 0x180; reg < 0x200; reg += 2) {
-        if (isDropped(reg) || reg == c_spuCnt) continue;
-        if (reg >= c_keyOnLo && reg <= c_keyOffHi) continue;
-        words.push_back(regWord(reg, baseline[reg / 2]));
-    }
-    words.push_back(regWord(c_spuCnt, filterValue(c_spuCnt, baseline[c_spuCnt / 2])));
-    stream.packet(PKT_REG_WRITE, words);
-    stream.packet(PKT_TRACE_BEGIN, {});
+    words.push_back(regWord(c_spuCnt, PCSX::SPD::filterValue(c_spuCnt, baseline[c_spuCnt / 2])));
+    return words;
+}
 
-    // Ticks are rounded from the absolute cycle distance to the first write, so rounding never
-    // accumulates across the stream. The cycle counter is not monotonic: a Lua guest call
-    // restores it on return, so writes after the call can carry smaller stamps than writes made
-    // during it. Such a write keeps its order and lands on the current tick.
-    const double ticksPerCycle = double(tickRate) / 65536.0 / double(options.clock);
+// Ticks are rounded from the absolute cycle distance to the first write, so rounding never
+// accumulates across the stream. The cycle counter is not monotonic: a Lua guest call
+// restores it on return, so writes after the call can carry smaller stamps than writes made
+// during it. Such a write keeps its order and lands on the current tick.
+void traceWrites(Stream& stream, std::span<const PCSX::SPD::RegWrite> writes, uint32_t tickRate, uint32_t clock,
+                 PCSX::SPD::Result& result) {
+    const double ticksPerCycle = double(tickRate) / 65536.0 / double(clock);
     const uint64_t origin = writes[0].cycle;
-    auto tickOf = [&](uint64_t cycle) -> uint64_t {
-        if (cycle <= origin) return 0;
-        return uint64_t(std::llround(double(cycle - origin) * ticksPerCycle));
-    };
-
-    words.clear();
+    std::vector<uint32_t> words;
     uint64_t current = 0;
     for (auto& w : writes) {
-        uint64_t tick = tickOf(w.cycle);
+        uint64_t tick = w.cycle <= origin ? 0 : uint64_t(std::llround(double(w.cycle - origin) * ticksPerCycle));
         if (tick > current) {
             appendWait(words, tick - current);
             stream.packet(PKT_REG_WRITE, words);
             words.clear();
             current = tick;
         }
-        if (w.reg >= 0x200 || isDropped(w.reg)) continue;
-        words.push_back(regWord(w.reg, filterValue(w.reg, w.value)));
+        if (w.reg >= 0x200 || PCSX::SPD::isDropped(w.reg)) continue;
+        words.push_back(regWord(w.reg, PCSX::SPD::filterValue(w.reg, w.value)));
         result.writes++;
     }
     if (!words.empty()) stream.packet(PKT_REG_WRITE, words);
-    stream.packet(PKT_END_PATTERN, {});
     result.ticks = current;
+}
 
+void serialize(Stream& stream, PCSX::SPD::Result& result) {
     static const char magic[16] = "PSXSPUDUMPv1r1";
     result.data.resize(stream.bytes());
     std::copy(magic, magic + 16, result.data.begin());
@@ -225,5 +202,47 @@ PCSX::SPD::Result PCSX::SPD::writeCapture(std::span<const uint16_t, 0x100> basel
         *out++ = (word >> 16) & 0xff;
         *out++ = word >> 24;
     }
+}
+
+}  // namespace
+
+PCSX::SPD::Result PCSX::SPD::writeCapture(std::span<const uint16_t, 0x100> baseline, std::span<const RegWrite> writes,
+                                          const uint8_t* spuRam, const Options& options) {
+    Result result;
+    if (writes.empty()) {
+        result.error = "no register writes to export";
+        return result;
+    }
+
+    const uint32_t tickRate = options.tickRate ? options.tickRate : (c_ntscHblanks << 16) / 16;
+    const Span span = sampleSpan(baseline, writes, spuRam, options.fullRam);
+
+    Stream stream;
+    stream.string(PKT_COMMENT, options.comment);
+    const uint32_t voiceCount = 24;
+    stream.packet(PKT_VOICE_COUNT, std::span(&voiceCount, 1));
+    stream.packet(PKT_TICK_RATE, std::span(&tickRate, 1));
+
+    if (span.hi > span.lo) {
+        result.sampleBase = span.lo;
+        result.sampleSize = span.hi - span.lo;
+        std::vector<uint32_t> payload(1 + (span.hi - span.lo + 3) / 4, 0);
+        payload[0] = span.lo >> 3;
+        std::copy(spuRam + span.lo, spuRam + span.hi, reinterpret_cast<uint8_t*>(payload.data() + 1));
+        stream.packet(PKT_SAMPLE_DATA, payload);
+    }
+
+    const uint32_t order[] = {0, 0, 0};  // no loop, one entry, pattern 0
+    stream.packet(PKT_ORDER_TABLE, order);
+    const size_t patternHeader = stream.words().size() + 1;
+    const uint32_t placeholder = 0;
+    stream.packet(PKT_PATTERN_HEADER, std::span(&placeholder, 1));
+    stream.words()[patternHeader] = uint32_t(stream.bytes());
+
+    stream.packet(PKT_REG_WRITE, restorationWrites(baseline));
+    stream.packet(PKT_TRACE_BEGIN, {});
+    traceWrites(stream, writes, tickRate, options.clock, result);
+    stream.packet(PKT_END_PATTERN, {});
+    serialize(stream, result);
     return result;
 }

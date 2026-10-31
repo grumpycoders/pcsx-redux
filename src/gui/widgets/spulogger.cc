@@ -20,8 +20,8 @@
 #include "gui/widgets/spulogger.h"
 
 #include "core/system.h"
-#include "support/file.h"
 #include "imgui.h"
+#include "support/file.h"
 
 void PCSX::Widgets::SPULogger::draw(PCSX::SPULogger *logger, const char *title) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -135,25 +135,26 @@ void PCSX::Widgets::SPULogger::draw(PCSX::SPULogger *logger, const char *title) 
     ImGui::EndChild();
 
     ImGui::End();
+    drawExportDialog(logger);
+}
 
-    if (m_exportDialog.draw()) {
-        auto &selected = m_exportDialog.selected();
-        if (!selected.empty()) {
-            std::vector<uint8_t> data;
-            std::string error = logger->exportSPD(data, {});
-            if (!error.empty()) {
-                m_exportStatus = error;
-            } else {
-                IO<File> file = new PosixFile(selected[0], FileOps::TRUNCATE);
-                if (file->failed()) {
-                    m_exportStatus = _("Unable to create the SPD file.");
-                } else {
-                    file->write(data.data(), data.size());
-                    m_exportStatus = fmt::format(f_("Exported {} bytes."), data.size());
-                }
-            }
-        }
+void PCSX::Widgets::SPULogger::drawExportDialog(PCSX::SPULogger *logger) {
+    if (!m_exportDialog.draw()) return;
+    auto &selected = m_exportDialog.selected();
+    if (selected.empty()) return;
+    std::vector<uint8_t> data;
+    std::string error = logger->exportSPD(data, {});
+    if (!error.empty()) {
+        m_exportStatus = error;
+        return;
     }
+    IO<File> file = new PosixFile(selected[0], FileOps::TRUNCATE);
+    if (file->failed()) {
+        m_exportStatus = _("Unable to create the SPD file.");
+        return;
+    }
+    file->write(data.data(), data.size());
+    m_exportStatus = fmt::format(f_("Exported {} bytes."), data.size());
 }
 
 void PCSX::Widgets::SPULogger::syncEnabled(PCSX::SPULogger *logger) {
