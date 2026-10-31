@@ -49,23 +49,84 @@ local function check(path)
     return steps > 0 and diffs == 0 and control > 0
 end
 
+-- The player's logger keeps one dump frame: the second frame's list must not hold the first one's
+-- commands, whatever the emulator is doing meanwhile, and a rewind replays to the same counts.
+local function checkLogger(path)
+    if not PCSX.GPU.DumpPlayer.load(path) then return false end
+    PCSX.GPU.DumpPlayer.setLogging(true)
+    PCSX.GPU.DumpPlayer.rewind()
+    PCSX.GPU.DumpPlayer.step()
+    local first = PCSX.GPU.DumpPlayer.getLoggedCount()
+    PCSX.GPU.DumpPlayer.step()
+    local second = PCSX.GPU.DumpPlayer.getLoggedCount()
+    PCSX.GPU.DumpPlayer.rewind()
+    PCSX.GPU.DumpPlayer.step()
+    PCSX.GPU.DumpPlayer.step()
+    local again = PCSX.GPU.DumpPlayer.getLoggedCount()
+    PCSX.GPU.DumpPlayer.setLogging(false)
+    print(string.format('%s: player logger %d then %d commands, %d after a rewind', path, first, second, again))
+    -- The first list also holds the restore sequence that rewind() plays before the first frame.
+    return first > 0 and second > 0 and second < first and second == again
+end
+
+-- A frame that sends no commands shows an empty list, not the previous frame's commands. Two VSync
+-- packets appended to the dump end it on a frame with nothing in it.
+local function checkEmptyFrame(path)
+    local src = io.open(path, 'rb')
+    if not src then return false end
+    local data = src:read('*a')
+    src:close()
+    local padded = path .. '-empty.gpd'
+    local dst = io.open(padded, 'wb')
+    local vsync = string.char(0, 0, 0, 2)
+    dst:write(data .. vsync .. vsync)
+    dst:close()
+    local loaded = PCSX.GPU.DumpPlayer.load(padded)
+    os.remove(padded)
+    if not loaded then return false end
+    PCSX.GPU.DumpPlayer.setLogging(true)
+    PCSX.GPU.DumpPlayer.rewind()
+    local busiest, last = 0, -1
+    while PCSX.GPU.DumpPlayer.step() do
+        last = PCSX.GPU.DumpPlayer.getLoggedCount()
+        if last > busiest then busiest = last end
+    end
+    PCSX.GPU.DumpPlayer.setLogging(false)
+    print(string.format('%s: busiest frame %d commands, empty last frame %d', path, busiest, last))
+    return busiest > 0 and last == 0
+end
+
 local tmp = os.tmpname()
 os.remove(tmp)
 local first, second = tmp .. '-1.gpd', tmp .. '-2.gpd'
 
+-- A dump has to end on a frame that changed VRAM, or the one-frame-short
+-- control matches by construction. The shell does not redraw on every vsync,
+-- so each stop waits for the first vsync at or past its mark that did.
 local vsyncs = 0
 local ok = true
+local previous
+local stage = 0
 Listener = PCSX.Events.createEventListener('GPU::Vsync', function()
     vsyncs = vsyncs + 1
-    if vsyncs == 60 then
+    local vram = PCSX.GPU.getVRAM()
+    local current = ffi.string(vram.data, vram.size)
+    local changed = previous ~= nil and current ~= previous
+    previous = current
+    if stage == 0 and vsyncs >= 60 then
         PCSX.GPU.startDump(first)
-    elseif vsyncs == 120 then
+        stage = 1
+    elseif stage == 1 and vsyncs >= 120 and changed then
         PCSX.GPU.stopDump()
         ok = check(first) and ok
-    elseif vsyncs == 150 then
+        ok = checkLogger(first) and ok
+        ok = checkEmptyFrame(first) and ok
+        stage = 2
+    elseif stage == 2 and vsyncs >= 150 then
         -- The player keeps its GPU while the emulated one runs on.
         PCSX.GPU.startDump(second)
-    elseif vsyncs == 240 then
+        stage = 3
+    elseif stage == 3 and vsyncs >= 240 and changed then
         PCSX.GPU.stopDump()
         ok = check(second) and ok
         os.remove(first)

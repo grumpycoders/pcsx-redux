@@ -20,7 +20,9 @@
 #include <algorithm>
 #include <cctype>
 #include <memory>
-#include <numeric>
+#include <optional>
+#include <sstream>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -31,6 +33,8 @@
 #include "support/tool-args.h"
 #include "support/typestring-wrapper.h"
 #include "supportpsx/adpcm.h"
+#include "tools/modconv/layout.h"
+#include "tools/modconv/stretch.h"
 
 typedef PCSX::BinStruct::Field<PCSX::BinStruct::CString<20>, TYPESTRING("Title")> ModTitle;
 
@@ -56,79 +60,12 @@ typedef PCSX::BinStruct::Struct<TYPESTRING("ModFile"), ModTitle, ModSamples, Pos
                                 Signature>
     ModFile;
 
-namespace {
-
-// How a MOD sample is laid out in SPU memory. Lengths are in bytes of the MOD sample, which are also
-// samples, since MOD samples are 8 bits.
-//
-// One-shot samples skip the first word: ProTracker clears it on load, and uses it as the idle loop once a
-// non-looped sample is done playing, so it is silence and not part of the sound. The trailing silent loop
-// block plays that role on the SPU.
-//
-// The SPU can only loop on whole 28-sample blocks, so looped samples are laid out as:
-//   [pad zeros][sample start .. loop start][loop body] x unroll
-// - front zeros are padded so that the loop start lands exactly on a block boundary;
-// - the loop body is unrolled the smallest number of times so that it ends on a block boundary,
-//   which keeps the SPU loop period at exactly loopLength * unroll samples;
-// - anything after the loop end is never heard on a MOD player, so it is dropped.
-// The first word is skipped like for one-shot samples, unless the loop starts at word 0, in which case
-// it is part of the loop body and has to be kept.
-// The loop fields written to the .hit file are the clamped loop, 0 and 1 for one-shot samples. modplayer
-// derives skip and pad from them with the same formulas to compute 9xx sample offsets, so they are part
-// of the .hit contract.
-struct SampleLayout {
-    bool hasLoop = false;
-    unsigned loopStart = 0;   // bytes
-    unsigned loopLength = 0;  // bytes, one MOD loop period
-    unsigned skip = 2;
-    unsigned pad = 0;
-    unsigned unroll = 1;
-    unsigned body = 0;  // bytes of loop body written out
-    bool exact = true;
-    unsigned encodedLength = 0;
-};
-
-SampleLayout computeLayout(unsigned length, unsigned loopStart, unsigned loopLength, bool allowUnroll) {
-    SampleLayout l;
-    // MOD loop fields are in words. A repeat length of 0 or 1 word means "no loop"; a loop starting
-    // at word 0 is a regular loop, usually over the whole sample.
-    l.hasLoop = loopLength > 1;
-    // Some trackers write loops running past the end of the sample; clamp them to the sample end.
-    if (l.hasLoop && (loopStart >= length)) l.hasLoop = false;
-    if (l.hasLoop && ((loopStart + loopLength) > length)) {
-        loopLength = length - loopStart;
-        l.hasLoop = loopLength > 1;
-    }
-    if (length == 0) return l;
-    if (!l.hasLoop) {
-        l.encodedLength = ((length - 1) * 2 + 27) / 28 * 16 + 16;
-        return l;
-    }
-    l.loopStart = loopStart * 2;
-    l.loopLength = loopLength * 2;
-    l.skip = loopStart == 0 ? 0 : 2;
-    l.pad = (28 - (l.loopStart - l.skip) % 28) % 28;
-    const unsigned preLoop = l.pad + l.loopStart - l.skip;
-    l.unroll = 28 / std::gcd(l.loopLength, 28u);
-    l.body = l.loopLength * l.unroll;
-    if (!allowUnroll || ((preLoop + l.body) / 28 * 16 >= 65536)) {
-        // Unrolling is disabled or would overflow the 16 bits length field. Fall back to a single loop
-        // period rounded to the nearest whole block; the loop period is then off by at most 14 samples.
-        l.unroll = 1;
-        l.body = std::max(28u, (l.loopLength + 14) / 28 * 28);
-        l.exact = l.body == l.loopLength;
-    }
-    l.encodedLength = (preLoop + l.body) / 28 * 16;
-    return l;
-}
-
-}  // namespace
-
 int main(int argc, char** argv) {
     args::ArgumentParser parser("");
     args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
     args::ValueFlag<std::string> samplesFlag(parser, "samples", "", {"s"});
     args::ValueFlag<unsigned> amplificationFlag(parser, "amplification", "", {"a"});
+    args::ValueFlag<std::string> stretchFlag(parser, "stretch", "", {"stretch"});
     args::Flag helpFlag(parser, "help", "", {"h"});
     args::PositionalList<std::string> inputsList(parser, "inputs", "");
     PCSX::ToolArgs::parse(parser, argc, argv);
@@ -136,7 +73,7 @@ int main(int argc, char** argv) {
 
     fmt::print(R"(
 modconv by Nicolas "Pixel" Noble
-https://github.com/grumpycoders/pcsx-redux/tree/main/tools/modconv/
+https://github.com/pcsx-redux/pcsx-redux/tree/main/tools/modconv/
 
 )");
 
@@ -146,19 +83,30 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/modconv/
     const bool oneInput = inputs.size() == 1;
     const auto samplesFile = PCSX::ToolArgs::get(samplesFlag);
     const auto amplification = PCSX::ToolArgs::get(amplificationFlag).value_or(175);
+    const auto stretchList = PCSX::ToolArgs::get(stretchFlag);
     if (asksForHelp || !oneInput || !hasOutput) {
         fmt::print(R"(
-Usage: {} input.mod [-h] [-s output.smp] [-a amp] -o output.hit
+Usage: {} input.mod [-h] [-s output.smp] [-a amp] [--stretch list] -o output.hit
   input.mod         mandatory: specify the input mod file
   -o output.hit     mandatory: name of the output hit file.
   -h                displays this help information and exit.
   -s output.smp     optional: name of the output sample file.
   -a amplification  optional: value of sample amplification. Defaults to 175.
+  --stretch list    optional: comma separated sample numbers, or "all", whose
+                    loops are resampled to whole SPU blocks instead of rounded.
 
 If the -s option is specified, the .hit file will only contain the pattern data,
 and the .smp file will contain the sample data which can be loaded into the SPU
 memory separately. If the -s option is not specified, the .hit file will contain
 both the pattern and sample data.
+
+The SPU loops on whole blocks of 28 samples, so by default loop lengths are
+rounded to the nearest block, which detunes the looped part of the sample.
+A stretched sample is instead resampled so that its loop is a whole number of
+blocks, and the notes playing it are transposed and its finetune adjusted to
+play it at the same pitch. A sample that can't be stretched, because its notes
+would move past the period table, it would get too long, or stretching isn't
+closer than rounding, is rounded, and modconv says so.
 )",
                    argv[0]);
         return -1;
@@ -201,7 +149,31 @@ both the pattern and sample data.
         maxPatternID = std::max(maxPatternID, unsigned(modFile.get<PatternTable>()[i]));
     }
 
-    auto patternData = file->read(channels * (maxPatternID + 1) * 256);
+    auto patternSlice = file->read(channels * (maxPatternID + 1) * 256);
+    std::vector<uint8_t> patternData(patternSlice.data<uint8_t>(), patternSlice.data<uint8_t>() + patternSlice.size());
+
+    std::vector<bool> stretchRequested(32, false);
+    if (stretchList.has_value()) {
+        if (stretchList.value().empty()) {
+            fmt::print("--stretch needs a list of sample numbers, or \"all\".\n");
+            return -1;
+        }
+        std::stringstream list(stretchList.value());
+        std::string item;
+        while (std::getline(list, item, ',')) {
+            if (item == "all") {
+                std::fill(stretchRequested.begin(), stretchRequested.end(), true);
+                continue;
+            }
+            char* end = nullptr;
+            const unsigned long n = std::strtoul(item.c_str(), &end, 10);
+            if (item.empty() || *end || n < 1 || n > 31) {
+                fmt::print("Invalid sample number in --stretch: {}\n", item);
+                return -1;
+            }
+            stretchRequested[n] = true;
+        }
+    }
 
     fmt::print("Title:     {}\n", modFile.get<ModTitle>().value);
     fmt::print("Channels:  {}\n", channels);
@@ -218,32 +190,43 @@ both the pattern and sample data.
 
     constexpr unsigned spuMemory = 512 * 1024 - 0x1010;
 
-    // Exact loops need unrolling, which can use a lot more SPU memory. If the exact layout doesn't fit,
-    // disable unrolling for the whole module, which rounds loop periods to whole blocks instead.
-    bool allowUnroll = true;
-    {
-        unsigned exactLength = 0;
-        for (unsigned i = 0; i < 31; i++) {
-            auto& sample = modFile.get<ModSamples>()[i];
-            exactLength += computeLayout(sample.get<SampleLength>().value, sample.get<SampleLoopStart>().value,
-                                         sample.get<SampleLoopLength>().value, true)
-                               .encodedLength;
-        }
-        if (exactLength >= spuMemory) {
-            fmt::print("Exact loops would need {} bytes of SPU memory; rounding loops to whole blocks instead.\n",
-                       exactLength);
-            allowUnroll = false;
-        }
-    }
-
+    std::string loopWarnings;
+    std::string stretchReport;
+    uint8_t orders[128];
+    for (unsigned i = 0; i < 128; i++) orders[i] = modFile.get<PatternTable>()[i];
+    const auto cellMap = PCSX::ModConv::mapCells(patternData, channels, orders,
+                                                 std::min(128u, unsigned(modFile.get<Positions>().value)));
+    const auto notesUsed = PCSX::ModConv::notesPerSample(patternData, cellMap);
+    std::vector<std::optional<PCSX::ModConv::Stretch>> stretches(32);
     std::unique_ptr<PCSX::ADPCM::Encoder> encoder(new PCSX::ADPCM::Encoder);
     for (unsigned i = 0; i < 31; i++) {
         encoder->reset();
         auto& sample = modFile.get<ModSamples>()[i];
         fmt::print("Sample {:2} [{:22}] - ", i + 1, sample.get<SampleName>().value);
         auto length = sample.get<SampleLength>().value;
-        const auto layout = computeLayout(length, sample.get<SampleLoopStart>().value,
-                                          sample.get<SampleLoopLength>().value, allowUnroll);
+        auto layout = PCSX::ModConv::computeLayout(length, sample.get<SampleLoopStart>().value,
+                                                   sample.get<SampleLoopLength>().value);
+        if (stretchRequested[i + 1] && layout.hasLoop && !layout.exact) {
+            stretches[i + 1] = PCSX::ModConv::chooseStretch(
+                layout.loopLength, PCSX::ModConv::finetuneFromNibble(sample.get<SampleFineTune>().value),
+                notesUsed[i + 1]);
+            const auto& st = *stretches[i + 1];
+            const unsigned newLoopStart = unsigned(std::lround(layout.loopStart * st.ratio() / 2.0)) * 2;
+            if (st.offTable != 0) {
+                // Those notes would be clamped to the top of the table and play flat.
+                stretchReport += fmt::format(
+                    "  Sample {:2}: {} notes would transpose past the table, rounded instead\n", i + 1, st.offTable);
+                stretches[i + 1].reset();
+            } else if (st.worstCents >= st.roundedCents) {
+                stretchReport += fmt::format("  Sample {:2}: rounding is as close, not stretched\n", i + 1);
+                stretches[i + 1].reset();
+            } else if (PCSX::ModConv::computeLayout((newLoopStart + st.newLoopLength) / 2, newLoopStart / 2,
+                                                    st.newLoopLength / 2)
+                           .encodedLength >= 65536) {
+                stretchReport += fmt::format("  Sample {:2}: too long to stretch, rounded instead\n", i + 1);
+                stretches[i + 1].reset();
+            }
+        }
         if (length == 0) {
             fmt::print("Empty\n");
             continue;
@@ -283,6 +266,19 @@ both the pattern and sample data.
         } else {
             std::vector<int16_t> source(length * 2);
             for (auto& s : source) s = int16_t(file->read<int8_t>()) * amplification;
+            if (stretches[i + 1]) {
+                const auto& st = *stretches[i + 1];
+                unsigned newLoopStart;
+                source = PCSX::ModConv::resampleLoop(source, layout.loopStart, layout.loopLength, st.newLoopLength,
+                                                     newLoopStart);
+                layout = PCSX::ModConv::computeLayout(source.size() / 2, newLoopStart / 2, st.newLoopLength / 2);
+                sample.get<SampleFineTune>().value = PCSX::ModConv::finetuneToNibble(st.finetune);
+                stretchReport += fmt::format(
+                    "  Sample {:2} [{}]: loop {} -> {} samples, {:+} semitones, finetune {:+} (was {:+}), worst "
+                    "loop pitch error {:.1f} cents over {} notes ({:.1f} rounded)\n",
+                    i + 1, sample.get<SampleName>().value, st.loopLength, st.newLoopLength, st.semitones, st.finetune,
+                    st.oldFinetune, st.worstCents, notesUsed[i + 1].size(), st.roundedCents);
+            }
             std::vector<int16_t> pcm(layout.pad, 0);
             pcm.insert(pcm.end(), source.begin() + layout.skip, source.begin() + layout.loopStart);
             const unsigned loopBlock = pcm.size() / 28;
@@ -303,9 +299,11 @@ both the pattern and sample data.
                 encodedSamples->write(spuBlock, 16);
                 encodedLength += 16;
             }
-            fmt::print("Size {} -> {}, loop {}+{} bytes, pad {}, unroll {}{}\n", sample.get<SampleLength>().value * 2,
-                       encodedLength, layout.loopStart, layout.loopLength, layout.pad, layout.unroll,
+            fmt::print("Size {} -> {}, loop {}+{} bytes, pad {}{}\n", sample.get<SampleLength>().value * 2,
+                       encodedLength, layout.loopStart, layout.loopLength, layout.pad,
                        layout.exact ? "" : ", loop period rounded to a whole block");
+            if (!layout.exact)
+                loopWarnings += PCSX::ModConv::loopWarning(i + 1, sample.get<SampleName>().value, layout);
         }
         sample.get<SampleLength>().value = encodedLength;
         // Write back the loop that was actually encoded, after clamping, so that the player's 9xx
@@ -316,6 +314,17 @@ both the pattern and sample data.
             fmt::print("Sample too big.\n");
             return -1;
         }
+    }
+
+    if (!stretchReport.empty()) {
+        fmt::print("Stretched loops:\n{}", stretchReport);
+        for (auto& w : PCSX::ModConv::rewritePatterns(patternData, cellMap, stretches)) {
+            fmt::print("Warning: {}\n", w);
+        }
+    }
+
+    if (!loopWarnings.empty()) {
+        fmt::print("{}{}{}", PCSX::ModConv::c_loopWarningHeader, loopWarnings, PCSX::ModConv::c_loopWarningFooter);
     }
 
     if (channels >= 10) {
@@ -346,7 +355,7 @@ both the pattern and sample data.
 
     PCSX::IO<PCSX::File> out(new PCSX::PosixFile(output.value().c_str(), PCSX::FileOps::TRUNCATE));
     modFile.serialize(out);
-    out->write(std::move(patternData));
+    out->write(patternData.data(), patternData.size());
     if (!samplesFile.has_value()) {
         out->write(std::move(encodedSamples.asA<PCSX::BufferFile>()->borrow()));
     }

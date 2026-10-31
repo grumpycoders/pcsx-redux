@@ -203,6 +203,8 @@ PCSX::GPUDumpPlayer::~GPUDumpPlayer() { unload(); }
 
 void PCSX::GPUDumpPlayer::unload() {
     if (m_gpu) m_gpu->shutdown();
+    m_logger.clearFrameLog();
+    m_logger.setOwner(nullptr);
     m_gpu.reset();
     m_frame = 0;
     m_gameID.clear();
@@ -221,6 +223,7 @@ bool PCSX::GPUDumpPlayer::load(IO<File> file) {
     if (!m_reader.open(file)) return false;
     m_gpu = GPU::getSoft();
     m_gpu->detach(&m_logger);
+    m_logger.setOwner(m_gpu.get());
     // No UI: a detached GPU must not draw into the main window. Callers read its VRAM instead.
     m_gpu->init(nullptr);
     rewind();
@@ -230,6 +233,8 @@ bool PCSX::GPUDumpPlayer::load(IO<File> file) {
 void PCSX::GPUDumpPlayer::rewind() {
     if (!m_gpu) return;
     m_frame = 0;
+    m_logger.clearFrameLog();
+    m_logger.setFrame(0);
     m_reader.rewind();
     m_gpu->writeStatus(0x00000000);
     m_gpu->clearVRAM();
@@ -257,6 +262,7 @@ bool PCSX::GPUDumpPlayer::step() {
         if (packet.type == GPUDumper::VSync) {
             m_gpu->vblank(true);
             m_frame++;
+            m_logger.setFrame(m_frame);
             return true;
         }
         execute(packet);

@@ -329,6 +329,10 @@ class R3000Acpu {
     bool exception(uint32_t code, bool bd, bool cop0 = false);
     void branchTest();
 
+  private:
+    void branchTestEvents();
+
+  public:
     void psxSetPGXPMode(uint32_t pgxpMode);
 
     void schedule(Schedule s_, uint32_t eCycle) {

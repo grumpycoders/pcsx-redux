@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\copbranch.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\disasm-syscall.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\dma.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -90,6 +93,12 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-irq.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-dfe-480i.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpustat10.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpustat-480i.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -126,7 +135,19 @@
     <ClCompile Include="..\..\..\tests\spu-volume.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\modconv-layout.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\spu\overlay.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\modconv-stretch.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\spu\speed.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\spu\syncmix.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\tests\core\pad-config.cc">

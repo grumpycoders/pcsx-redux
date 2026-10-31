@@ -43,6 +43,7 @@
 #include "gui/widgets/cdrom-viewer.h"
 #include "gui/widgets/console.h"
 #include "gui/widgets/cputrace.h"
+#include "gui/widgets/dalos.h"
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
@@ -51,7 +52,6 @@
 #include "gui/widgets/handlers.h"
 #include "gui/widgets/heap_viewer.h"
 #include "gui/widgets/hwregs.h"
-#include "gui/widgets/dalos.h"
 #include "gui/widgets/isobrowser.h"
 #include "gui/widgets/kernellog.h"
 #include "gui/widgets/log.h"
@@ -192,11 +192,10 @@ class GUI final : public UI {
              ShowCpuTrace, ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog,
              ShowCallstacks, ShowSIO1, ShowNetwork, ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer,
              ShowCDRomViewer, ShowHeapViewer, ShowAllocTracker, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme,
-             AllowMouseCaptureToggle,
-             EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
-             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
-             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
-             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
+             AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1,
+             ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6,
+             ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor,
+             ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
              MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
              ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowSPURAMEditor, SPURAMEditorAddr,
              ShowSPULogger, SPULoggerEnabled, ShowSPUSamples, ShowDalos, ShowMsanViewer>
@@ -371,7 +370,6 @@ class GUI final : public UI {
     TvgViewport *getTvgViewport(unsigned viewportId);
     void renderTvgViewport(ImGuiViewport *viewport, SDL_Window *window);
     void destroyTvgViewport(unsigned viewportId, SDL_Window *window);
-    std::vector<ImWchar> m_baseFontRanges;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
@@ -503,7 +501,7 @@ class GUI final : public UI {
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
     Widgets::SPULogger m_spuLoggerWidget;
-    Widgets::SPUSamples m_spuSamplesWidget{settings.get<ShowSPUSamples>().value};
+    Widgets::SPUSamples m_spuSamplesWidget;
     Widgets::HeapViewer m_heapViewer{settings.get<ShowHeapViewer>().value};
     Widgets::AllocTrackerViewer m_allocTrackerViewer{settings.get<ShowAllocTracker>().value};
     Widgets::HWRegs m_hwRegs{settings.get<ShowHWRegs>().value};
@@ -550,8 +548,7 @@ class GUI final : public UI {
     bool m_hasJapanese = false;
     float m_currentScale = 1.0f;
 
-    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine,
-                     bool isSymbolsFont);
+    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, bool combine);
 
     bool m_reloadFonts = true;
     Widgets::ShaderEditor m_outputShaderEditor = {"output"};

@@ -1328,7 +1328,7 @@ int main(int argc, char** argv) {
 
     fmt::print(R"(
 midi2spd - MIDI to SPUDUMP converter
-Part of PCSX-Redux - https://github.com/grumpycoders/pcsx-redux
+Part of PCSX-Redux - https://github.com/pcsx-redux/pcsx-redux
 
 )");
 

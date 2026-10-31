@@ -128,13 +128,14 @@ class GPUDumpPlayer {
     void rewind();
     uint64_t frame() const { return m_frame; }
     GPU* gpu() { return m_gpu.get(); }
+    GPULogger* logger() { return &m_logger; }
     const std::string& gameID() const { return m_gameID; }
     const std::string& comment() const { return m_comment; }
 
   private:
     void execute(const GPUDumpReader::Packet& packet);
     std::unique_ptr<GPU> m_gpu;
-    GPULogger m_logger;
+    GPULogger m_logger{false};
     GPUDumpReader m_reader;
     size_t m_traceStart = 4;
     uint64_t m_frame = 0;

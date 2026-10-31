@@ -20,6 +20,7 @@
 #include "core/disr3000a.h"
 
 #include <stdarg.h>
+#include <string.h>
 
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
@@ -56,6 +57,21 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
     "*RES*",    "*RES*",  "ECC",      "CacheErr",  // 18
     "TagLo",    "TagHi",  "ErrorEPC", "*RES*",     // 1c
 };
+
+const char *PCSX::Disasm::getSyscallName(uint32_t index) {
+    switch (index) {
+        case 0:
+            return "NoFunction";
+        case 1:
+            return "EnterCriticalSection";
+        case 2:
+            return "ExitCriticalSection";
+        case 3:
+            return "ChangeThreadSubFunction";
+        default:
+            return "DeliverEvent";
+    }
+}
 
 #undef declare
 #undef _Funct_
@@ -101,8 +117,16 @@ struct LiveValueSource : public PCSX::Disasm::ValueSource {
     uint32_t hi() override { return PCSX::g_emulator->m_cpu->m_regs.GPR.n.hi; }
     uint32_t lo() override { return PCSX::g_emulator->m_cpu->m_regs.GPR.n.lo; }
     uint8_t mem8(uint32_t addr) override { return *ptr(addr); }
-    uint16_t mem16(uint32_t addr) override { return SWAP_LE16(*(int16_t *)ptr(addr)); }
-    uint32_t mem32(uint32_t addr) override { return SWAP_LE32(*(int32_t *)ptr(addr)); }
+    uint16_t mem16(uint32_t addr) override {
+        int16_t v;
+        memcpy(&v, ptr(addr), sizeof(v));
+        return SWAP_LE16(v);
+    }
+    uint32_t mem32(uint32_t addr) override {
+        int32_t v;
+        memcpy(&v, ptr(addr), sizeof(v));
+        return SWAP_LE32(v);
+    }
 };
 
 struct StringDisasm : public PCSX::Disasm {
@@ -239,6 +263,7 @@ struct StringDisasm : public PCSX::Disasm {
             }
         }
     }
+    virtual void SyscallName(const char *name) final { append(" %s", name); }
     virtual void reset() final {
         m_buf[0] = 0;
         m_len = 0;
@@ -296,13 +321,12 @@ declare(disADDI) {
 declare(disADDIU) {
     if (_Rs_ == 0) {
         // this is the common pseudo-instruction to load an immediate 16 bits value
-        dOpCode("li");
-        GPR(_Rt_);
-    } else {
-        dOpCode("addiu");
-        GPR(_Rt_);
-        if (_Rt_ != _Rs_) GPR(_Rs_);
+        disLI(_Rt_, _Im_, false, nextCode, skipNext);
+        return;
     }
+    dOpCode("addiu");
+    GPR(_Rt_);
+    if (_Rt_ != _Rs_) GPR(_Rs_);
     dImm16();
 }
 declare(disANDI) {
@@ -314,13 +338,12 @@ declare(disANDI) {
 declare(disORI) {
     if (_Rs_ == 0) {
         // while rare, this can also be used to load an immediate 16-bits value
-        dOpCode("li");
-        GPR(_Rt_);
-    } else {
-        dOpCode("ori");
-        GPR(_Rt_);
-        if (_Rt_ != _Rs_) GPR(_Rs_);
+        disLI(_Rt_, _Im_, true, nextCode, skipNext);
+        return;
     }
+    dOpCode("ori");
+    GPR(_Rt_);
+    if (_Rt_ != _Rs_) GPR(_Rs_);
     dImm16u();
 }
 declare(disSLTI) {
@@ -695,6 +718,28 @@ declare(disLUI) {
     }
 }
 
+void PCSX::Disasm::disLI(uint8_t reg, uint16_t imm, bool zeroExtend, uint32_t nextCode, bool *skipNext) {
+    // Merge syscalls, which usually have the pattern
+    // li $a0, syscallNumber
+    // syscall 0x0000
+    // A syscall with a nonzero code field is left alone, so its code still shows.
+    static constexpr uint32_t c_plainSyscall = 0x0000000c;
+    const bool liA0BeforeSyscall = (reg == 4) && (nextCode == c_plainSyscall);
+    if (skipNext && liA0BeforeSyscall) {
+        dOpCode("syscall");
+        SyscallName(getSyscallName(imm));
+        *skipNext = true;
+        return;
+    }
+    dOpCode("li");
+    GPR(reg);
+    if (zeroExtend) {
+        Imm16u(imm);
+    } else {
+        Imm16(imm);
+    }
+}
+
 /*********************************************************
  * Move from HI/LO to GPR                                 *
  * Format:  OP rd                                         *
@@ -995,7 +1040,7 @@ declare(disBCz) {
 }
 
 /*********************************************************
- * Unknow instruction (would generate an exception)       *
+ * Unknown instruction (would generate an exception)      *
  * Format:  ?                                             *
  *********************************************************/
 declare(disNULL) {
