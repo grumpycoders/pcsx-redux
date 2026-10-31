@@ -87,11 +87,15 @@ constexpr int kMaxRateIndex = 127;
 constexpr int kFrozenRate = 0x7f;
 constexpr int kFrozenCoarseRate = 0x1f;
 
-// A rate with a period of P samples steps on the samples where a count shared by all voices is
-// a multiple of P. Key-on does not reset it: two voices on the same rate step on the same
-// samples whenever they were keyed on (measured on SCPH-1001 and SCPH-5501).
+// A rate with a period of P samples steps on the samples where the low bits of a free-running
+// counter shared by all voices read P/2. Key-on does not reset it, so two voices on the same rate
+// step on the same samples whenever they were keyed on. On silicon the counter's phase against the
+// capture position (SPUSTAT bit 11) changes from one power-on to the next; this value puts a
+// 256-sample period's steps 49 samples after a bit 11 edge, as on one SCPH-1001 run.
+constexpr uint64_t kStepCounterPhase = 79;
 bool stepLands(int rateIndex, uint64_t sample) {
-    return (sample & static_cast<uint64_t>(EnvelopeTables::denominator.data[rateIndex] - 1)) == 0;
+    const uint64_t period = EnvelopeTables::denominator.data[rateIndex];
+    return ((sample + kStepCounterPhase) & (period - 1)) == (period >> 1);
 }
 }  // namespace
 

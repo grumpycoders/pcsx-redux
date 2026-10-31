@@ -95,15 +95,19 @@ TEST(SPUAdsr, FastDecayToSustain14) {
 }
 
 TEST(SPUAdsr, SlowestDecayStepsOnceAtSustain15) {
-    // Decay rate 15 steps every 16 samples; silicon holds 0x7fff until the next sample
-    // whose SPU-wide index is a multiple of 16, takes one step and stops at 0x7ff7.
+    // Decay rate 15 steps every 16 samples on a grid shared by all voices; silicon holds
+    // 0x7fff until the next grid sample, takes one step and stops at 0x7ff7. Whatever the
+    // key-on sample, the step lands on the same sample modulo 16.
+    int64_t gridPhase = -1;
     for (uint64_t start = 0; start < 16; start++) {
         const auto t = trace(15, 15, start);
         EXPECT_EQ(changes(t), (std::vector<int>{0x3800, 0x7000, 0x7fff, 0x7ff7})) << "start " << start;
         const int step = lastChange(t);
         EXPECT_GT(step, c_peakSample) << "start " << start;
         EXPECT_LE(step, c_peakSample + 16) << "start " << start;
-        EXPECT_EQ((start + step) % 16, 0u) << "start " << start;
+        const int64_t phase = static_cast<int64_t>((start + step) % 16);
+        if (gridPhase < 0) gridPhase = phase;
+        EXPECT_EQ(phase, gridPhase) << "start " << start;
     }
 }
 
@@ -118,14 +122,20 @@ TEST(SPUAdsr, VoicesShareTheStepGrid) {
         program(b, 15, 0, kAttackShift16);
         bool onA = true, onB = true;
         int lastA = 0, lastB = 0, stepsB = 0;
+        int64_t gridPhase = -1;
         for (uint64_t s = 0; s < 64 * kPeriod; s++) {
             const int va = a.step(false, onA, s);
-            if (va != lastA) EXPECT_EQ(s % kPeriod, 0u) << "offset " << offset;
+            bool stepA = va != lastA;
             lastA = va;
+            if (stepA) {
+                const int64_t phase = static_cast<int64_t>(s % kPeriod);
+                if (gridPhase < 0) gridPhase = phase;
+                EXPECT_EQ(phase, gridPhase) << "offset " << offset;
+            }
             if (s < offset) continue;
             const int vb = b.step(false, onB, s);
             if (vb != lastB) {
-                EXPECT_EQ(s % kPeriod, 0u) << "offset " << offset;
+                EXPECT_TRUE(stepA) << "offset " << offset << " sample " << s;
                 stepsB++;
             }
             lastB = vb;
